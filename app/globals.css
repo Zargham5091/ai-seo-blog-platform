@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 239 84% 58%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 239 84% 58%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 239 84% 65%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 239 84% 65%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  h1,h2,h3,h4,h5,h6 { @apply font-semibold tracking-tight; }
+}
+
+/* Tiptap prose overrides */
+.ProseMirror {
+  @apply outline-none;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-muted-foreground pointer-events-none float-left h-0;
+  content: attr(data-placeholder);
+}
+.ProseMirror table {
+  @apply w-full border-collapse border border-border rounded-lg overflow-hidden my-4;
+}
+.ProseMirror table td,
+.ProseMirror table th {
+  @apply border border-border px-3 py-2 text-sm;
+}
+.ProseMirror table th {
+  @apply bg-muted font-semibold;
+}
+.ProseMirror pre {
+  @apply bg-zinc-950 text-zinc-100 rounded-lg p-4 my-4 overflow-x-auto;
+}
+.ProseMirror blockquote {
+  @apply border-l-4 border-indigo-500 pl-4 italic text-muted-foreground my-4;
+}
+.ProseMirror ul { @apply list-disc pl-6 my-3 space-y-1; }
+.ProseMirror ol { @apply list-decimal pl-6 my-3 space-y-1; }
+.ProseMirror h1 { @apply text-4xl font-bold my-4; }
+.ProseMirror h2 { @apply text-3xl font-bold my-3; }
+.ProseMirror h3 { @apply text-2xl font-semibold my-3; }
+.ProseMirror a { @apply text-indigo-600 underline hover:text-indigo-700; }
+.ProseMirror img { @apply max-w-full rounded-lg my-4; }
+.ProseMirror hr { @apply my-6 border-border; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }
+
+/* Shimmer skeleton */
+.skeleton {
+  @apply animate-pulse bg-muted rounded-md;
+}
+
+/* Page transition */
+.page-enter { @apply opacity-0 translate-y-2; }
+.page-enter-active { @apply opacity-100 translate-y-0 transition-all duration-300; }
