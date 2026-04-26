@@ -47,12 +47,23 @@ export default withAuth(
         // ── 2. Local dev preview: /preview/[subdomain] → tenant blog ─────────
         // In local dev visit: http://localhost:3000/preview/zrgblog
         // In production this path is unused — real subdomain takes over
+        // if (pathname.startsWith("/preview/")) {
+        //     const parts = pathname.split("/");
+        //     const subdomain = parts[2]; // /preview/[subdomain]/...
+        //     if (subdomain) {
+        //         const rest = "/" + parts.slice(3).join("/") || "/";
+        //         url.pathname = `/_tenants/subdomain/${subdomain}${rest}`;
+        //         return NextResponse.rewrite(url);
+        //     }
+        // }
+
+        // ── Local dev preview: /preview/[subdomain] ───────────────────────────
         if (pathname.startsWith("/preview/")) {
             const parts = pathname.split("/");
-            const subdomain = parts[2]; // /preview/[subdomain]/...
+            const subdomain = parts[2];
             if (subdomain) {
-                const rest = "/" + parts.slice(3).join("/") || "/";
-                url.pathname = `/_tenants/subdomain/${subdomain}${rest}`;
+                const rest = parts.slice(3).join("/");
+                url.pathname = `/_tenants/subdomain/${subdomain}${rest ? `/${rest}` : ""}`;
                 return NextResponse.rewrite(url);
             }
         }
@@ -158,7 +169,9 @@ export default withAuth(
                     pathname.startsWith("/_next") ||
                     pathname.startsWith("/favicon") ||
                     pathname.startsWith("/sitemap") ||
-                    pathname.startsWith("/robots")
+                    pathname.startsWith("/robots") ||
+                    pathname.startsWith("/preview/") ||
+                    pathname.startsWith("/_tenants/")
                 ) {
                     return true;
                 }

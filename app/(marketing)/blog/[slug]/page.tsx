@@ -1,12 +1,14 @@
 import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import {connectDB} from "@/lib/db";
-import BlogModel from "@/models/Blog";
+import BlogModel, {IBlogDocument} from "@/models/Blog";
 import {formatDate} from "@/lib/utils";
 import {Badge} from "@/components/ui/form-elements";
 import {Clock, Eye, Calendar, Tag, User} from "lucide-react";
 import {BlocksRenderer} from "@/components/blog/BlocksRenderer";
-import {TableOfContents, injectHeadingIds} from "@/components/blog/TableOfContents";
+import {TableOfContents} from "@/components/blog/TableOfContents";
+import { injectHeadingIds } from "@/lib/inject-heading-ids";
+
 
 type Props = { params: { slug: string } };
 
@@ -15,10 +17,10 @@ export async function generateMetadata({params}: Props): Promise<Metadata> {
     const blog = await BlogModel.findOne({
         slug: params.slug,
         status: "published"
-    }).lean() as Record<string, unknown> | null;
+    }).lean<IBlogDocument>();
     if (!blog) return {title: "Post Not Found"};
 
-    const seo = blog.seo as Record<string, unknown> | undefined;
+    const seo = blog.seo;
     return {
         title: (seo?.metaTitle as string) || (blog.title as string),
         description: (seo?.metaDescription as string) || (blog.excerpt as string),
@@ -49,11 +51,11 @@ export default async function BlogPostPage({params}: Props) {
         {slug: params.slug, status: "published"},
         {$inc: {viewCount: 1}},
         {new: true}
-    ).lean() as Record<string, unknown> | null;
+    ).lean<IBlogDocument>();
 
     if (!blog) notFound();
 
-    const seo = blog.seo as Record<string, unknown> | undefined;
+    const seo = blog.seo;
     const blocks = (blog.blocks as {
         id: string;
         type: string;
@@ -64,7 +66,7 @@ export default async function BlogPostPage({params}: Props) {
     const categories = (blog.categories as string[]) ?? [];
 
     // Inject IDs into headings for table of contents anchor links
-    const contentWithIds = injectHeadingIds((blog.content as string) ?? "");
+    const contentWithIds = injectHeadingIds(blog.content);
 
     // Determine if we have rich content to show
     const hasHtmlContent = contentWithIds && contentWithIds.trim().length > 0;

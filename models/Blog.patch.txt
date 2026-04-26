@@ -1,0 +1,11 @@
+// ADD these two fields to the BlogSchema in models/Blog.ts
+// Find the field definitions and add after the existing fields:
+
+// isFeatured: { type: Boolean, default: false },
+// featuredAt: { type: Date },
+
+// ADD this index after the existing indexes:
+// BlogSchema.index({ isFeatured: 1, featuredAt: -1 });
+
+// This is the ONLY change needed in models/Blog.ts
+// Do NOT replace the whole file — just add these 3 lines in the right places

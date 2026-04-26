@@ -33,10 +33,20 @@ export default function UserDashboardPage() {
           You're on the Free plan with access to demo features. Upgrade to unlock the full power of AI-powered SEO.
         </p>
         <div className="flex gap-3 flex-wrap">
-          <Button asChild className="bg-white text-indigo-600 hover:bg-white/90 font-semibold gap-2">
-            <Link href="/pricing">Upgrade Now <ArrowRight className="h-4 w-4" /></Link>
+          <Button
+              asChild
+              className="bg-white text-indigo-600 hover:bg-white/90 shadow-md shadow-black/10 font-semibold gap-2"
+          >
+            <Link href="/pricing">
+              Upgrade Now <ArrowRight className="h-4 w-4" />
+            </Link>
           </Button>
-          <Button asChild variant="outline" className="border-white text-white hover:bg-white/10 gap-2">
+
+          <Button
+              asChild
+              variant="outline"
+              className="border-white/30 text-white bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-white/40 gap-2"
+          >
             <Link href="/demo">Try Live Demo</Link>
           </Button>
         </div>

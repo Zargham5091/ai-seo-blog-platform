@@ -85,7 +85,6 @@ const TenantDomainSchema = new Schema<ITenantDomainDocument>(
     {timestamps: true}
 );
 
-TenantDomainSchema.index({subdomain: 1});
 TenantDomainSchema.index({customDomain: 1});
 TenantDomainSchema.index({userId: 1});
 

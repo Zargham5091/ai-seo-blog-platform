@@ -1,33 +1,41 @@
-import { notFound } from "next/navigation";
-import type { Metadata } from "next";
+import {notFound} from "next/navigation";
+import type {Metadata} from "next";
 import Link from "next/link";
-import { connectDB } from "@/lib/db";
+import {connectDB} from "@/lib/db";
 import TenantDomainModel, {ITenantDomainDocument} from "@/models/TenantDomain";
 import UserModel, {IUserDocument} from "@/models/User";
 import BlogModel, {IBlogDocument} from "@/models/Blog";
-import { formatDate } from "@/lib/utils";
-import { Clock, Eye } from "lucide-react";
+import {formatDate} from "@/lib/utils";
+import {Clock, Eye} from "lucide-react";
 
-type Props = { params: { domain: string } };
+type Props = { params: Promise<{ domain: string }> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({params}: Props): Promise<Metadata> {
     await connectDB();
-    const tenant = await TenantDomainModel.findOne({ subdomain: params.domain, isActive: true }).lean<ITenantDomainDocument>();
-    if (!tenant) return { title: "Blog Not Found" };
+    const {domain} = await params;
+    const tenant = await TenantDomainModel.findOne({subdomain: domain, isActive: true}).lean<ITenantDomainDocument>();
+    if (!tenant) return {title: "Blog Not Found"};
     return {
-        title: (tenant as { siteName?: string; defaultMetaTitle?: string }).defaultMetaTitle || (tenant as { siteName?: string }).siteName || "Blog",
-        description: (tenant as { defaultMetaDescription?: string }).defaultMetaDescription || (tenant as { siteDescription?: string }).siteDescription,
+        title: (tenant as { siteName?: string; defaultMetaTitle?: string }).defaultMetaTitle || (tenant as {
+            siteName?: string
+        }).siteName || "Blog",
+        description: (tenant as { defaultMetaDescription?: string }).defaultMetaDescription || (tenant as {
+            siteDescription?: string
+        }).siteDescription,
         openGraph: {
-            images: (tenant as { defaultOgImage?: string }).defaultOgImage ? [(tenant as { defaultOgImage?: string }).defaultOgImage!] : [],
+            images: (tenant as { defaultOgImage?: string }).defaultOgImage ? [(tenant as {
+                defaultOgImage?: string
+            }).defaultOgImage!] : [],
         },
     };
 }
 
-export default async function TenantBlogHome({ params }: Props) {
+export default async function TenantBlogHome({params}: Props) {
     await connectDB();
+    const {domain} = await params;
 
     const tenant = await TenantDomainModel.findOne({
-        subdomain: params.domain,
+        subdomain: domain,
         isActive: true,
     }).lean<ITenantDomainDocument>();
 
@@ -40,7 +48,7 @@ export default async function TenantBlogHome({ params }: Props) {
         tenantId: tenant.userId,
         status: "published",
     })
-        .sort({ publishedAt: -1 })
+        .sort({publishedAt: -1})
         .limit(12)
         .lean<IBlogDocument[]>();
 
@@ -56,11 +64,11 @@ export default async function TenantBlogHome({ params }: Props) {
                     <div className="flex items-center gap-3">
                         {tenant.siteLogo ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={tenant.siteLogo as string} alt={siteName} className="h-8 w-auto" />
+                            <img src={tenant.siteLogo as string} alt={siteName} className="h-8 w-auto"/>
                         ) : (
                             <div
                                 className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                                style={{ background: primaryColor }}
+                                style={{background: primaryColor}}
                             >
                                 {siteName.charAt(0).toUpperCase()}
                             </div>
@@ -86,7 +94,7 @@ export default async function TenantBlogHome({ params }: Props) {
             {/* Hero */}
             <section
                 className="py-20 text-center"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}15, transparent)` }}
+                style={{background: `linear-gradient(135deg, ${primaryColor}15, transparent)`}}
             >
                 <div className="container mx-auto px-4">
                     {/* Author avatar */}
@@ -101,7 +109,7 @@ export default async function TenantBlogHome({ params }: Props) {
                         ) : (
                             <div
                                 className="h-16 w-16 rounded-full flex items-center justify-center text-white font-bold text-xl border-4 border-background shadow-lg"
-                                style={{ background: primaryColor }}
+                                style={{background: primaryColor}}
                             >
                                 {(owner.name as string)?.charAt(0).toUpperCase()}
                             </div>
@@ -146,7 +154,8 @@ export default async function TenantBlogHome({ params }: Props) {
                                 href={`/blog/${blog.slug}`}
                                 className="group block"
                             >
-                                <article className="rounded-2xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
+                                <article
+                                    className="rounded-2xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
                                     {blog.coverImage ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
@@ -157,7 +166,7 @@ export default async function TenantBlogHome({ params }: Props) {
                                     ) : (
                                         <div
                                             className="w-full h-48 flex items-center justify-center text-white text-4xl"
-                                            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}99)` }}
+                                            style={{background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}99)`}}
                                         >
                                             📝
                                         </div>
@@ -185,14 +194,14 @@ export default async function TenantBlogHome({ params }: Props) {
                                         </p>
                                         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-auto">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" /> {blog.readTime} min
+                        <Clock className="h-3.5 w-3.5"/> {blog.readTime} min
                       </span>
                                             <span className="flex items-center gap-1">
-                        <Eye className="h-3.5 w-3.5" /> {blog.viewCount}
+                        <Eye className="h-3.5 w-3.5"/> {blog.viewCount}
                       </span>
                                             <span className="ml-auto">
                         {blog.publishedAt
-                            ? formatDate(blog.publishedAt as Date, { month: "short", day: "numeric" })
+                            ? formatDate(blog.publishedAt as Date, {month: "short", day: "numeric"})
                             : ""}
                       </span>
                                         </div>
@@ -211,7 +220,7 @@ export default async function TenantBlogHome({ params }: Props) {
                     <a
                         href={process.env.NEXT_PUBLIC_APP_URL ?? "/"}
                         className="hover:text-foreground transition-colors"
-                        style={{ color: primaryColor }}
+                        style={{color: primaryColor}}
                     >
                         SEO Platform
                     </a>

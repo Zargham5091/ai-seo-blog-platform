@@ -64,7 +64,7 @@ export default async function HomePage() {
           </div>
           <div className="container mx-auto px-4 text-center">
             <Badge variant="info" className="mb-6 gap-1.5 px-3 py-1 text-xs">
-              <Zap className="h-3 w-3" /> Powered by GPT-4o-mini & Next.js 14
+              <Zap className="h-3 w-3" /> Powered by GPT-4o-mini
             </Badge>
 
             {/* If CMS has custom home content, render it; otherwise use default */}

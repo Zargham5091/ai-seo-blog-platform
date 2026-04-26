@@ -73,7 +73,11 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
+        if (body.customDomain === "") {
+            body.customDomain = undefined;
+        }
         const parsed = DomainSchema.safeParse(body);
+
         if (!parsed.success) {
             return NextResponse.json(
                 {success: false, error: parsed.error.errors[0].message},
