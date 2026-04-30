@@ -6,6 +6,7 @@ import UserModel from "@/models/User";
 import {checkRateLimit, aiRatelimit} from "@/lib/ratelimit";
 import {z} from "zod";
 import {analyzeAEOContent} from "@/services/ai";
+import {getTenantContext} from "@/lib/tenant";
 
 const AEOSchema = z.object({
     content: z.string().min(100),
@@ -51,7 +52,9 @@ export async function POST(req: NextRequest) {
         }
 
         await connectDB();
-        const user = await UserModel.findById(session.user.id);
+        const tenant = await getTenantContext(session.user.id);
+        const user = await UserModel.findById(tenant.tenantId);
+        await UserModel.findByIdAndUpdate(tenant.tenantId, {$inc: {aiCreditsUsed: 1}});
         if (!user) {
             return NextResponse.json({success: false, error: "User not found"}, {status: 404});
         }

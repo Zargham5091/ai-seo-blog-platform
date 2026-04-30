@@ -268,7 +268,7 @@ export default async function PricingPage() {
 //
 // const faqs = [
 //   { q: "Can I switch plans anytime?", a: "Yes — upgrade or downgrade at any time. Changes take effect immediately and billing is prorated." },
-//   { q: "What payment methods are accepted?", a: "We accept all major credit/debit cards via Stripe, and cryptocurrency payments via Coinbase Commerce." },
+//   { q: "What payment methods are accepted?", a: "We accept-invite all major credit/debit cards via Stripe, and cryptocurrency payments via Coinbase Commerce." },
 //   { q: "What are AI credits?", a: "Each AI action (blog generation, keyword research, SEO analysis) uses 1 credit. Credits reset monthly." },
 //   { q: "Is there a free trial?", a: "The Free plan gives you 10 AI credits and 3 blogs permanently — no credit card required." },
 //   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime from your Settings dashboard. Your plan remains active until the end of your billing period." },
@@ -488,7 +488,7 @@ export default async function PricingPage() {
 // //
 // // const faqs = [
 // //   { q: "Can I switch plans anytime?", a: "Yes — upgrade or downgrade at any time. Changes take effect immediately and billing is prorated." },
-// //   { q: "What payment methods are accepted?", a: "We accept all major credit/debit cards via Stripe, and cryptocurrency payments via Coinbase Commerce." },
+// //   { q: "What payment methods are accepted?", a: "We accept-invite all major credit/debit cards via Stripe, and cryptocurrency payments via Coinbase Commerce." },
 // //   { q: "What are AI credits?", a: "Each AI action (blog generation, keyword research, SEO analysis) uses 1 credit. Credits reset monthly." },
 // //   { q: "Is there a free trial?", a: "The Free plan gives you 10 AI credits and 3 blogs permanently — no credit card required." },
 // //   { q: "Can I cancel anytime?", a: "Yes. Cancel anytime from your Settings dashboard. Your plan remains active until the end of your billing period." },

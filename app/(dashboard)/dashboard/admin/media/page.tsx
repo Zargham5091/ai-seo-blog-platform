@@ -354,7 +354,7 @@ export default function MediaPage() {
 //                 >
 //                     <Upload className="h-4 w-4"/> Upload Files
 //                 </Button>
-//                 <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,.pdf" className="hidden"
+//                 <input ref={fileInputRef} type="file" multiple accept-invite="image/*,video/*,.pdf" className="hidden"
 //                        onChange={handleFileChange}/>
 //             </div>
 //

@@ -5,6 +5,7 @@ import {connectDB} from "@/lib/db";
 import UserModel from "@/models/User";
 import {z} from "zod";
 import {analyzeBacklinks} from "@/services/ai";
+import {canWrite, getTenantContext} from "@/lib/tenant";
 
 
 const BacklinkSchema = z.object({
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest) {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
 
         // Feature gating — silver+ only
         if (session.user.plan === "free") {
@@ -50,7 +56,7 @@ export async function POST(req: NextRequest) {
         }
 
         await connectDB();
-        const user = await UserModel.findById(session.user.id);
+        const user = await UserModel.findById(tenant.tenantId);
         if (!user || user.aiCreditsUsed >= user.aiCreditsLimit) {
             return NextResponse.json({success: false, error: "No AI credits remaining"}, {status: 403});
         }
@@ -64,7 +70,7 @@ export async function POST(req: NextRequest) {
         const result = await analyzeBacklinks(parsed.data.url);
 
         // const result = JSON.parse(response.choices[0].message.content ?? "{}") as BacklinkAnalysis;
-        await UserModel.findByIdAndUpdate(session.user.id, {$inc: {aiCreditsUsed: 1}});
+        await UserModel.findByIdAndUpdate(tenant.tenantId, {$inc: {aiCreditsUsed: 1}});
 
         return NextResponse.json({success: true, data: result});
     } catch (error) {

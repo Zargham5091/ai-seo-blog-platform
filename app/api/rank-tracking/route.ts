@@ -3,9 +3,10 @@ import {getServerSession} from "next-auth";
 import {authOptions} from "@/lib/auth";
 import {connectDB} from "@/lib/db";
 import RankTrackingModel from "@/models/RankTracking";
-import UserModel from "@/models/User";
+import {getTenantContext} from "@/lib/tenant";
 import OpenAI from "openai";
 import {z} from "zod";
+import UserModel from "@/models/User";
 
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY});
 
@@ -49,7 +50,8 @@ export async function GET() {
         }
 
         await connectDB();
-        const keywords = await RankTrackingModel.find({tenantId: session.user.id, isActive: true})
+        const tenant = await getTenantContext(session.user.id);
+        const keywords = await RankTrackingModel.find({tenantId: tenant.tenantId, isActive: true})
             .sort({createdAt: -1})
             .lean();
 
@@ -69,11 +71,11 @@ export async function POST(req: NextRequest) {
 
         await connectDB();
 
-        // Check plan limits
+        const tenant = await getTenantContext(session.user.id);
+        const owner = await UserModel.findById(tenant.tenantId).select("plan").lean() as { plan: string } | null;
         const planLimits: Record<string, number> = {free: 5, silver: 25, gold: 100, diamond: 500};
-        const maxKeywords = planLimits[session.user.plan ?? "free"] ?? 5;
-        const currentCount = await RankTrackingModel.countDocuments({tenantId: session.user.id, isActive: true});
-
+        const maxKeywords = planLimits[owner?.plan ?? "free"] ?? 5;
+        const currentCount = await RankTrackingModel.countDocuments({tenantId: tenant.tenantId, isActive: true});
         if (currentCount >= maxKeywords) {
             return NextResponse.json({
                 success: false,
@@ -142,8 +144,10 @@ export async function DELETE(req: NextRequest) {
         }
 
         await connectDB();
+        const tenant = await getTenantContext(session.user.id);
+
         await RankTrackingModel.findOneAndUpdate(
-            {_id: id, tenantId: session.user.id},
+            {_id: id, tenantId: tenant.tenantId},
             {$set: {isActive: false}}
         );
 

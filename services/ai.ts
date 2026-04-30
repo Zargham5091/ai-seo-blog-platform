@@ -413,6 +413,192 @@ export async function generateInternalLinkSuggestions(content: string, existingP
     return result.suggestions ?? result ?? [];
 }
 
+export async function generateEmailContent(
+    subject: string,
+    tone: string,
+    purpose: string
+): Promise<{ subject: string; htmlContent: string; previewText: string }> {
+    const prompt = `Write a ${tone} ${purpose} email. Subject: "${subject}"
+
+RETURN ONLY VALID JSON with this exact structure:
+{
+  "subject": "Enhanced subject line",
+  "previewText": "40-60 char preview",
+  "htmlContent": "FULL HTML WITH INLINE STYLES"
+}
+
+CRITICAL: The htmlContent MUST include these inline styles exactly as shown:
+
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, #4F46E5, #7C3AED); padding: 30px 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">SUBJECT_HERE</h1>
+  </div>
+  <div style="padding: 30px 20px; background: white;">
+    <p style="margin-bottom: 16px; line-height: 1.5;">Hi {name},</p>
+    <p style="margin-bottom: 16px; line-height: 1.5;">Write 2-3 engaging paragraphs about ${subject}.</p>
+    <ul style="margin: 20px 0; padding-left: 20px;">
+      <li style="margin-bottom: 8px;">Point 1</li>
+      <li style="margin-bottom: 8px;">Point 2</li>
+      <li style="margin-bottom: 8px;">Point 3</li>
+    </ul>
+    <a href="#" style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold;">Read More →</a>
+  </div>
+  <div style="background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb;">
+    <p style="margin: 0;">Follow us: Twitter | Facebook | Instagram</p>
+    <p style="margin: 8px 0 0;">© ${new Date().getFullYear()} SEO Platform. All rights reserved.</p>
+  </div>
+</div>
+
+Write specific content about: ${subject}
+Keep it ${tone} tone.
+Make the content interesting and detailed.
+Replace SUBJECT_HERE with actual subject.
+
+Return ONLY valid JSON. No explanations.`;
+
+    const response = await openai.chat.completions.create({
+        model: MODEL,
+        messages: [{role: "user", content: prompt}],
+        response_format: {type: "json_object"},
+        temperature: 0.3, // Lowered from 0.8 to enforce formatting
+        max_tokens: 2500,
+    });
+
+    return JSON.parse(response.choices[0].message.content ?? "{}");
+}
+
+// export async function generateEmailContent(
+//     subject: string,
+//     tone: string,
+//     purpose: string
+// ): Promise<{ subject: string; htmlContent: string; previewText: string }> {
+//     const prompt = `You are an expert email marketer. Write a ${tone} ${purpose} email with this subject line: "${subject}"
+//
+// Return a JSON object:
+// {
+//   "subject": "Optimized subject line",
+//   "previewText": "40-60 character preview text",
+//   "htmlContent": "HTML email body with inline styles"
+// }
+//
+// CRITICAL REQUIREMENTS for htmlContent:
+// - Use inline styles ONLY (no classes, no CSS files)
+// - Add proper spacing: margin-bottom, padding
+// - Style the button with: background:#4F46E5, color:white, padding:12px 24px, border-radius:8px, text-decoration:none, display:inline-block
+// - Style list items with margin-bottom:8px
+// - Wrap everything in a container with max-width:600px, margin:0 auto
+// - Use a clean font-family: Arial, sans-serif
+// - Add a subtle border or background for the main content area
+// - Make it mobile responsive
+// - Add social media links placeholder
+//
+// Example structure:
+// <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+//   <div style="background: linear-gradient(135deg, #4F46E5, #0EA5E9); padding: 30px; text-align: center; color: white;">
+//     <h1 style="margin: 0;">${subject}</h1>
+//   </div>
+//   <div style="padding: 30px;">
+//     <p>Hi {name},</p>
+//     <p>Your content here...</p>
+//     <a href="#" style="background: #4F46E5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 20px 0;">Read More →</a>
+//   </div>
+//   <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
+//     <p>© ${new Date().getFullYear()} SEO Platform. All rights reserved.</p>
+//   </div>
+// </div>
+//
+// Make it look professional, visually appealing, and email-client friendly.
+// Return ONLY valid JSON. No extra text.`;
+//
+//     const response = await openai.chat.completions.create({
+//         model: MODEL,
+//         messages: [{role: "user", content: prompt}],
+//         response_format: {type: "json_object"},
+//         temperature: 0.8,
+//         max_tokens: 2000,
+//     });
+//
+//     return JSON.parse(response.choices[0].message.content ?? "{}");
+// }
+
+// export async function generateEmailContent(
+//     subject: string,
+//     tone: string,
+//     purpose: string
+// ): Promise<{ subject: string; htmlContent: string; previewText: string }> {
+//     const prompt = `You are an expert email marketer. Write a ${tone} ${purpose} email with this subject line: "${subject}"
+//
+// Return a JSON object:
+// {
+//   "subject": "Optimized subject line (keep original or enhance slightly)",
+//   "previewText": "40-60 character preview text that makes people want to open",
+//   "htmlContent": "Clean HTML email body with proper formatting"
+// }
+//
+// Requirements for htmlContent:
+// - Use simple HTML tags: <h2>, <p>, <ul>, <li>, <a href="#">
+// - Include a clear CTA button as <a class="btn" href="#">Click Here</a>
+// - Keep paragraphs short and scannable
+// - Add {name} placeholder for personalization
+// - NO CSS styles, NO inline styles, NO tables
+// - Just semantic HTML that can be pasted into any email editor
+// - Include a simple signature with "-- Team" at the end
+//
+// Example format:
+// <h2>Welcome!</h2>
+// <p>Hi {name},</p>
+// <p>Short paragraph here...</p>
+// <a href="#">Read More →</a>
+// <p>Best regards,<br/>The Team</p>
+//
+// Return ONLY valid JSON. No extra text.`;
+//
+//     const response = await openai.chat.completions.create({
+//         model: MODEL,
+//         messages: [{role: "user", content: prompt}],
+//         response_format: {type: "json_object"},
+//         temperature: 0.8,
+//         max_tokens: 1500,
+//     });
+//
+//     return JSON.parse(response.choices[0].message.content ?? "{}");
+// }
+
+// export async function generateEmailContent(
+//     subject: string,
+//     tone: string,
+//     purpose: string
+// ): Promise<{ subject: string; htmlContent: string; previewText: string }> {
+//     const prompt = `You are an expert email marketer. Write a ${tone} ${purpose} email with this subject line: "${subject}"
+//
+// Return a JSON object:
+// {
+//   "subject": "Optimized subject line (keep original or enhance slightly)",
+//   "previewText": "40-60 character preview text that makes people want to open",
+//   "htmlContent": "Full HTML email body with proper formatting, headings, buttons, and clear CTA"
+// }
+//
+// Requirements:
+// - Use modern email HTML (table-based or simple divs with inline styles)
+// - Include a clear call-to-action button
+// - Keep paragraphs short and scannable
+// - Add personalization placeholder like {name}
+// - Mobile responsive
+// - Professional signature at bottom
+//
+// Return ONLY valid JSON. No extra text.`;
+//
+//     const response = await openai.chat.completions.create({
+//         model: MODEL,
+//         messages: [{role: "user", content: prompt}],
+//         response_format: {type: "json_object"},
+//         temperature: 0.8,
+//         max_tokens: 1500,
+//     });
+//
+//     return JSON.parse(response.choices[0].message.content ?? "{}");
+// }
+
 
 // import OpenAI from "openai";
 //

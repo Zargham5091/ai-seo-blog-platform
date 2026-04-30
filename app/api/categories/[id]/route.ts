@@ -6,6 +6,7 @@ import CategoryModel from "@/models/Category";
 import BlogModel from "@/models/Blog";
 import {slugify} from "@/lib/utils";
 import {z} from "zod";
+import {getTenantContext, canWrite, canDelete} from "@/lib/tenant";
 
 type Params = { params: { id: string } };
 
@@ -20,7 +21,11 @@ export async function PUT(req: NextRequest, {params}: Params) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
-
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Read-only access"
+        }, {status: 403});
         const body = await req.json();
         const parsed = UpdateSchema.safeParse(body);
         if (!parsed.success) {
@@ -33,7 +38,7 @@ export async function PUT(req: NextRequest, {params}: Params) {
         if (parsed.data.name) update.slug = slugify(parsed.data.name);
 
         const category = await CategoryModel.findOneAndUpdate(
-            {_id: params.id, tenantId: session.user.id},
+            {_id: params.id, tenantId: tenant.tenantId},
             {$set: update},
             {new: true, runValidators: true}
         );
@@ -52,13 +57,17 @@ export async function DELETE(_req: NextRequest, {params}: Params) {
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
 
         await connectDB();
-
-        const category = await CategoryModel.findOne({_id: params.id, tenantId: session.user.id});
+        const tenant = await getTenantContext(session.user.id);
+        if (!canDelete(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can delete."
+        }, {status: 403});
+        const category = await CategoryModel.findOne({_id: params.id, tenantId: tenant.tenantId});
         if (!category) return NextResponse.json({success: false, error: "Category not found"}, {status: 404});
 
         // Remove this category from all blogs that use it
         await BlogModel.updateMany(
-            {tenantId: session.user.id, categories: category.name},
+            {tenantId: tenant.tenantId, categories: category.name},
             {$pull: {categories: category.name}}
         );
 

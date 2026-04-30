@@ -1,60 +1,167 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
+// app/api/ai/generate/route.ts
+import {NextRequest, NextResponse} from "next/server";
+import {getServerSession} from "next-auth";
+import {authOptions} from "@/lib/auth";
+import {connectDB} from "@/lib/db";
 import UserModel from "@/models/User";
-import { generateBlogPost } from "@/services/ai";
-import { checkRateLimit, aiRatelimit } from "@/lib/ratelimit";
-import { z } from "zod";
+import {generateBlogPost} from "@/services/ai";
+import {getTenantContext, canWrite} from "@/lib/tenant";
+import {checkRateLimit, aiRatelimit} from "@/lib/ratelimit";
+import {z} from "zod";
 
 const GenerateSchema = z.object({
-  topic: z.string().min(3).max(200),
-  keywords: z.array(z.string()).min(1).max(10),
-  tone: z.enum(["professional", "casual", "educational", "persuasive", "storytelling"]).optional(),
-  wordCount: z.number().min(300).max(3000).optional(),
+    topic: z.string().min(3).max(200),
+    keywords: z.array(z.string()).min(1).max(10),
+    tone: z.enum(["professional", "casual", "educational", "persuasive", "storytelling"]).optional(),
+    wordCount: z.number().min(300).max(3000).optional(),
 });
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
 
-    // Rate limit check
-    const { success: rateLimitOk, remaining } = await checkRateLimit(aiRatelimit, `ai:${session.user.id}`);
-    if (!rateLimitOk) {
-      return NextResponse.json({ success: false, error: "Rate limit exceeded. Please wait before making more AI requests." }, { status: 429 });
+        const {success: rateLimitOk, remaining} = await checkRateLimit(aiRatelimit, `ai:${session.user.id}`);
+        if (!rateLimitOk) return NextResponse.json({success: false, error: "Rate limit exceeded."}, {status: 429});
+
+        await connectDB();
+        const tenant = await getTenantContext(session.user.id);
+
+        if (!canWrite(tenant.role)) {
+            return NextResponse.json({success: false, error: "You have read-only access."}, {status: 403});
+        }
+
+        if (tenant.isOwner) {
+            // Owner: check their own credits
+            const user = await UserModel.findById(tenant.tenantId);
+            if (!user) return NextResponse.json({success: false, error: "User not found"}, {status: 404});
+
+            if (user.aiCreditsUsed >= user.aiCreditsLimit) {
+                return NextResponse.json({
+                    success: false,
+                    error: `You've used all ${user.aiCreditsLimit} AI credits. Please upgrade your plan.`,
+                }, {status: 403});
+            }
+
+            const body = await req.json();
+            const parsed = GenerateSchema.safeParse(body);
+            if (!parsed.success) return NextResponse.json({
+                success: false,
+                error: parsed.error.errors[0].message
+            }, {status: 400});
+
+            const result = await generateBlogPost(parsed.data);
+            await UserModel.findByIdAndUpdate(tenant.tenantId, {$inc: {aiCreditsUsed: 1}});
+
+            return NextResponse.json({
+                success: true, data: result,
+                meta: {creditsRemaining: user.aiCreditsLimit - user.aiCreditsUsed - 1, rateLimitRemaining: remaining},
+            });
+
+        } else {
+            // Team member: check their allocated credits
+            if (tenant.aiCreditsLimit === 0) {
+                return NextResponse.json({
+                    success: false,
+                    error: "No AI credits allocated to you. Ask your team owner to allocate credits.",
+                }, {status: 403});
+            }
+
+            if (tenant.aiCreditsUsed >= tenant.aiCreditsLimit) {
+                return NextResponse.json({
+                    success: false,
+                    error: `You've used all ${tenant.aiCreditsLimit} allocated AI credits.`,
+                }, {status: 403});
+            }
+
+            const body = await req.json();
+            const parsed = GenerateSchema.safeParse(body);
+            if (!parsed.success) return NextResponse.json({
+                success: false,
+                error: parsed.error.errors[0].message
+            }, {status: 400});
+
+            const result = await generateBlogPost(parsed.data);
+
+            // Deduct from member's allocated credits AND owner's total
+            await Promise.all([
+                UserModel.findOneAndUpdate(
+                    {_id: tenant.tenantId, "teamMembers.userId": session.user.id},
+                    {$inc: {"teamMembers.$.aiCreditsUsed": 1, aiCreditsUsed: 1}}
+                ),
+            ]);
+
+            return NextResponse.json({
+                success: true, data: result,
+                meta: {
+                    creditsRemaining: tenant.aiCreditsLimit - tenant.aiCreditsUsed - 1,
+                    rateLimitRemaining: remaining
+                },
+            });
+        }
+    } catch (error) {
+        console.error("[AI_GENERATE]", error);
+        return NextResponse.json({success: false, error: "AI generation failed. Please try again."}, {status: 500});
     }
-
-    await connectDB();
-    const user = await UserModel.findById(session.user.id);
-    if (!user) return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
-
-    // Check AI credit quota
-    if (user.aiCreditsUsed >= user.aiCreditsLimit) {
-      return NextResponse.json({
-        success: false,
-        error: `You've used all ${user.aiCreditsLimit} AI credits for this month. Please upgrade your plan for more credits.`,
-      }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const parsed = GenerateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
-    }
-
-    const result = await generateBlogPost(parsed.data);
-
-    // Deduct one credit
-    await UserModel.findByIdAndUpdate(session.user.id, { $inc: { aiCreditsUsed: 1 } });
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-      meta: { creditsRemaining: user.aiCreditsLimit - user.aiCreditsUsed - 1, rateLimitRemaining: remaining },
-    });
-  } catch (error) {
-    console.error("[AI_GENERATE]", error);
-    return NextResponse.json({ success: false, error: "AI generation failed. Please try again." }, { status: 500 });
-  }
 }
+
+// import { NextRequest, NextResponse } from "next/server";
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/lib/auth";
+// import { connectDB } from "@/lib/db";
+// import UserModel from "@/models/User";
+// import { generateBlogPost } from "@/services/ai";
+// import { checkRateLimit, aiRatelimit } from "@/lib/ratelimit";
+// import { z } from "zod";
+//
+// const GenerateSchema = z.object({
+//   topic: z.string().min(3).max(200),
+//   keywords: z.array(z.string()).min(1).max(10),
+//   tone: z.enum(["professional", "casual", "educational", "persuasive", "storytelling"]).optional(),
+//   wordCount: z.number().min(300).max(3000).optional(),
+// });
+//
+// export async function POST(req: NextRequest) {
+//   try {
+//     const session = await getServerSession(authOptions);
+//     if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+//
+//     // Rate limit check
+//     const { success: rateLimitOk, remaining } = await checkRateLimit(aiRatelimit, `ai:${session.user.id}`);
+//     if (!rateLimitOk) {
+//       return NextResponse.json({ success: false, error: "Rate limit exceeded. Please wait before making more AI requests." }, { status: 429 });
+//     }
+//
+//     await connectDB();
+//     const user = await UserModel.findById(session.user.id);
+//     if (!user) return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+//
+//     // Check AI credit quota
+//     if (user.aiCreditsUsed >= user.aiCreditsLimit) {
+//       return NextResponse.json({
+//         success: false,
+//         error: `You've used all ${user.aiCreditsLimit} AI credits for this month. Please upgrade your plan for more credits.`,
+//       }, { status: 403 });
+//     }
+//
+//     const body = await req.json();
+//     const parsed = GenerateSchema.safeParse(body);
+//     if (!parsed.success) {
+//       return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
+//     }
+//
+//     const result = await generateBlogPost(parsed.data);
+//
+//     // Deduct one credit
+//     await UserModel.findByIdAndUpdate(session.user.id, { $inc: { aiCreditsUsed: 1 } });
+//
+//     return NextResponse.json({
+//       success: true,
+//       data: result,
+//       meta: { creditsRemaining: user.aiCreditsLimit - user.aiCreditsUsed - 1, rateLimitRemaining: remaining },
+//     });
+//   } catch (error) {
+//     console.error("[AI_GENERATE]", error);
+//     return NextResponse.json({ success: false, error: "AI generation failed. Please try again." }, { status: 500 });
+//   }
+// }

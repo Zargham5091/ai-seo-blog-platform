@@ -6,6 +6,8 @@ import UserModel from "@/models/User";
 import {checkRateLimit, aiRatelimit} from "@/lib/ratelimit";
 import {z} from "zod";
 import {repurposeContent, RepurposedContent} from "@/services/ai";
+import {getTenantContext} from "@/lib/tenant";
+
 
 const RepurposeSchema = z.object({
     content: z.string().min(100, "Content must be at least 100 characters"),
@@ -31,7 +33,8 @@ export async function POST(req: NextRequest) {
         }
 
         await connectDB();
-        const user = await UserModel.findById(session.user.id);
+        const tenant = await getTenantContext(session.user.id);
+        const user = await UserModel.findById(tenant.tenantId);
         if (!user) {
             return NextResponse.json({success: false, error: "User not found"}, {status: 404});
         }

@@ -9,6 +9,7 @@ import TenantDomainModel from "@/models/TenantDomain";
 import type {IBlogDocument} from "@/models/Blog";
 import type {IRankTrackingDocument} from "@/models/RankTracking";
 import type {ITenantDomainDocument} from "@/models/TenantDomain";
+import {canWrite, getTenantContext} from "@/lib/tenant";
 
 // GET /api/reports — get report data for the current user
 export async function GET() {
@@ -17,20 +18,21 @@ export async function GET() {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
 
         await connectDB();
 
         const [blogs, rankTracking, domain, user] = await Promise.all([
-            BlogModel.find({tenantId: session.user.id})
+            BlogModel.find({tenantId: tenant.tenantId})
                 .select("title slug status viewCount readTime seo publishedAt createdAt")
                 .sort({publishedAt: -1})
                 .lean<IBlogDocument[]>(),
-            RankTrackingModel.find({tenantId: session.user.id, isActive: true})
+            RankTrackingModel.find({tenantId: tenant.tenantId, isActive: true})
                 .select("keyword currentPosition previousPosition bestPosition snapshots")
                 .lean<IRankTrackingDocument[]>(),
-            TenantDomainModel.findOne({userId: session.user.id})
+            TenantDomainModel.findOne({userId: tenant.tenantId})
                 .lean<ITenantDomainDocument>(),
-            UserModel.findById(session.user.id)
+            UserModel.findById(tenant.tenantId)
                 .select("name email plan aiCreditsUsed aiCreditsLimit createdAt")
                 .lean<IUserDocument>(),
         ]);

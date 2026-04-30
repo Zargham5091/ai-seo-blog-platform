@@ -146,3 +146,59 @@ export async function sendTeamInviteEmail(email: string, inviterName: string, te
     `),
     });
 }
+
+
+export async function sendNewsletterCampaign({
+                                                 to,
+                                                 toName,
+                                                 subject,
+                                                 htmlContent,
+                                                 fromName,
+                                                 fromEmail,
+                                                 campaignId,
+                                                 subscriberId
+                                             }: {
+    to: string;
+    toName: string;
+    subject: string;
+    htmlContent: string;
+    fromName: string;
+    fromEmail: string;
+    campaignId: string;
+    subscriberId?: string;
+}): Promise<void> {
+    // Wrap content with base template
+    const wrappedHtml = baseTemplate(htmlContent);
+
+    // Add tracking pixel (for open rates)
+    const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/newsletter/track?campaignId=${campaignId}&subscriberId=${subscriberId}" width="1" height="1" />`;
+
+    const finalHtml = wrappedHtml.replace('</body>', `${trackingPixel}</body>`);
+
+    await transporter.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to: to,
+        subject: subject,
+        html: finalHtml,
+        headers: {
+            'List-Unsubscribe': `<${process.env.NEXT_PUBLIC_APP_URL}/api/newsletter/unsubscribe?campaignId=${campaignId}&email=${to}>`,
+            'X-Campaign-Id': campaignId,
+        }
+    });
+}
+
+export async function sendSupportReplyEmail(to: string, reply: string): Promise<void> {
+    await transporter.sendMail({
+        from: FROM,
+        to: to,
+        subject: `Re: Your support request — SEO Platform`,
+        html: baseTemplate(`
+            <p>Hi there,</p>
+            <p>Our team has replied to your support request:</p>
+            <blockquote style="border-left:4px solid #4F46E5;margin:16px 0;padding:12px 16px;background:#fff;border-radius:0 8px 8px 0">
+                ${reply}
+            </blockquote>
+            <p style="color:#9ca3af;font-size:13px">SEO Platform Support Team</p>
+        `),
+    })
+}

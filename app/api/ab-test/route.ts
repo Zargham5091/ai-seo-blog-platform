@@ -5,6 +5,7 @@ import {connectDB} from "@/lib/db";
 import ABTestModel from "@/models/ABTest";
 import {z} from "zod";
 import crypto from "crypto";
+import {canDelete, canWrite, getTenantContext} from "@/lib/tenant";
 
 const CreateSchema = z.object({
     name: z.string().min(1).max(100),
@@ -23,10 +24,10 @@ export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
-
+        const tenant = await getTenantContext(session.user.id);
         await connectDB();
         const status = new URL(req.url).searchParams.get("status");
-        const query: Record<string, unknown> = {tenantId: session.user.id};
+        const query: Record<string, unknown> = {tenantId: tenant.tenantId};
         if (status) query.status = status;
 
         const tests = await ABTestModel.find(query)
@@ -44,7 +45,11 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
-
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
         const body = await req.json();
         const parsed = CreateSchema.safeParse(body);
         if (!parsed.success) return NextResponse.json({
@@ -65,7 +70,7 @@ export async function POST(req: NextRequest) {
         }));
 
         const test = await ABTestModel.create({
-            tenantId: session.user.id,
+            tenantId: tenant.tenantId,
             name: parsed.data.name,
             testType: parsed.data.testType,
             blogId: parsed.data.blogId,

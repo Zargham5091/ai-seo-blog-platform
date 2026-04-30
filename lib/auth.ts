@@ -6,6 +6,7 @@ import {connectDB} from "@/lib/db";
 import UserModel from "@/models/User";
 import bcrypt from "bcryptjs";
 import {MongoDBAdapter} from "@auth/mongodb-adapter";
+import {ACTIONS, logActivity} from "@/lib/activity";
 
 export const authOptions: NextAuthOptions = {
     adapter: MongoDBAdapter(clientPromise),
@@ -135,6 +136,13 @@ export const authOptions: NextAuthOptions = {
                     );
                 }
             }
+            logActivity({
+                userId: user.id!,
+                tenantId: user.id!,
+                action: ACTIONS.USER_LOGIN,
+                category: "auth",
+                metadata: {provider: account?.provider},
+            }).catch(console.error);
             return true;
         },
     },

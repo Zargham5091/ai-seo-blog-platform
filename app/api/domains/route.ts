@@ -5,6 +5,7 @@ import {connectDB} from "@/lib/db";
 import TenantDomainModel from "@/models/TenantDomain";
 import {z} from "zod";
 import crypto from "crypto";
+import {canDelete, canWrite, getTenantContext} from "@/lib/tenant";
 
 const DomainSchema = z.object({
     subdomain: z
@@ -48,9 +49,9 @@ export async function GET() {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
-
+        const tenant = await getTenantContext(session.user.id);
         await connectDB();
-        const domain = await TenantDomainModel.findOne({userId: session.user.id}).lean();
+        const domain = await TenantDomainModel.findOne({userId: tenant.tenantId}).lean();
         return NextResponse.json({success: true, data: domain ?? null});
     } catch {
         return NextResponse.json({success: false, error: "Internal server error"}, {status: 500});
@@ -64,6 +65,11 @@ export async function POST(req: NextRequest) {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
 
         if (session.user.plan === "free") {
             return NextResponse.json(
@@ -91,7 +97,7 @@ export async function POST(req: NextRequest) {
         if (parsed.data.subdomain) {
             const existing = await TenantDomainModel.findOne({
                 subdomain: parsed.data.subdomain,
-                userId: {$ne: session.user.id},
+                userId: {$ne: tenant.tenantId},
             });
             if (existing) {
                 return NextResponse.json(
@@ -105,7 +111,7 @@ export async function POST(req: NextRequest) {
         if (parsed.data.customDomain) {
             const existing = await TenantDomainModel.findOne({
                 customDomain: parsed.data.customDomain,
-                userId: {$ne: session.user.id},
+                userId: {$ne: tenant.tenantId},
             });
             if (existing) {
                 return NextResponse.json(
@@ -116,12 +122,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Generate a DNS verification token when custom domain is set for first time
-        const currentRecord = await TenantDomainModel.findOne({userId: session.user.id});
+        const currentRecord = await TenantDomainModel.findOne({userId: tenant.tenantId}).lean();
         const isNewCustomDomain =
             parsed.data.customDomain &&
             parsed.data.customDomain !== currentRecord?.customDomain;
 
-        const updatePayload: Record<string, unknown> = {...parsed.data, userId: session.user.id};
+        const updatePayload: Record<string, unknown> = {...parsed.data, userId: tenant.tenantId};
 
         if (isNewCustomDomain) {
             // Reset verification when domain changes
@@ -130,7 +136,7 @@ export async function POST(req: NextRequest) {
         }
 
         const domain = await TenantDomainModel.findOneAndUpdate(
-            {userId: session.user.id},
+            {userId: tenant.tenantId},
             {$set: updatePayload},
             {new: true, upsert: true, runValidators: true}
         );
@@ -152,9 +158,14 @@ export async function DELETE() {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
+        if (!canDelete(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
 
         await connectDB();
-        await TenantDomainModel.findOneAndDelete({userId: session.user.id});
+        await TenantDomainModel.findOneAndDelete({userId: tenant.tenantId});
         return NextResponse.json({success: true, message: "Domain settings removed"});
     } catch {
         return NextResponse.json({success: false, error: "Internal server error"}, {status: 500});

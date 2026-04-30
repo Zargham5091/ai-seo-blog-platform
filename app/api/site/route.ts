@@ -4,6 +4,7 @@ import {authOptions} from "@/lib/auth";
 import {connectDB} from "@/lib/db";
 import UserSiteModel from "@/models/UserSite";
 import PlanComponentModel from "@/models/PlanComponent";
+import {canWrite, getTenantContext} from "@/lib/tenant";
 
 // GET /api/site — get current user's site config
 export async function GET() {
@@ -12,11 +13,11 @@ export async function GET() {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
-
+        const tenant = await getTenantContext(session.user.id);
         await connectDB();
 
         const [site, availableAnimations] = await Promise.all([
-            UserSiteModel.findOne({userId: session.user.id})
+            UserSiteModel.findOne({userId: tenant.tenantId})
                 .populate("templateId", "name theme style colors previewImage")
                 .lean(),
             PlanComponentModel.find({
@@ -43,6 +44,11 @@ export async function PUT(req: NextRequest) {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
 
         await connectDB();
         const body = await req.json();
@@ -59,7 +65,7 @@ export async function PUT(req: NextRequest) {
         }
 
         const site = await UserSiteModel.findOneAndUpdate(
-            {userId: session.user.id},
+            {userId: tenant.tenantId},
             {$set: update},
             {new: true, upsert: true}
         );

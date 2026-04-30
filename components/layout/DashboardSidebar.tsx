@@ -6,7 +6,7 @@ import {
     LayoutDashboard, FileText, Search, BarChart3, Users, Settings,
     Globe, Tag, Sparkles, TrendingUp, Link2, Zap, FileBarChart,
     Gift, Calendar, Mail, FlaskConical, Layers, Star, Shield,
-    CreditCard, Cpu, MessageSquare, Bell, Code, Repeat2,
+    CreditCard, Cpu, MessageSquare, Bell, Code, Repeat2, Activity, MessageCircle,
 } from "lucide-react";
 import {cn} from "@/lib/utils";
 
@@ -53,6 +53,8 @@ const SUPER_ADMIN_NAV: NavItem[] = [
     {label: "Featured Posts", href: "/dashboard/super-admin/featured", icon: Star},
     {label: "Component Library", href: "/dashboard/super-admin/components", icon: Layers},
     {label: "Referral Payouts", href: "/dashboard/super-admin/referral", icon: Gift},
+    {label: "Support Inbox", href: "/dashboard/super-admin/support", icon: MessageCircle},
+    {label: "Activity Feed", href: "/dashboard/super-admin/activity", icon: Activity},
     {label: "Settings", href: "/dashboard/super-admin/settings", icon: Settings},
 ];
 

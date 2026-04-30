@@ -4,6 +4,7 @@ import {authOptions} from "@/lib/auth";
 import {connectDB} from "@/lib/db";
 import TenantDomainModel from "@/models/TenantDomain";
 import dns from "dns/promises";
+import {canWrite, getTenantContext} from "@/lib/tenant";
 
 // POST /api/domains/verify — check if DNS TXT record matches
 export async function POST() {
@@ -12,9 +13,14 @@ export async function POST() {
         if (!session) {
             return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
         }
+        const tenant = await getTenantContext(session.user.id);
+        if (!canWrite(tenant.role)) return NextResponse.json({
+            success: false,
+            error: "Only admins can write."
+        }, {status: 403});
 
         await connectDB();
-        const record = await TenantDomainModel.findOne({userId: session.user.id});
+        const record = await TenantDomainModel.findOne({userId:tenant.tenantId}).lean();
 
         if (!record?.customDomain) {
             return NextResponse.json(

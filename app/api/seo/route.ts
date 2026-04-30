@@ -6,6 +6,8 @@ import BlogModel, {IBlogDocument} from "@/models/Blog";
 import UserModel from "@/models/User";
 import OpenAI from "openai";
 import {z} from "zod";
+import {getTenantContext} from "@/lib/tenant";
+
 
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY});
 
@@ -21,13 +23,13 @@ export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
-
+        const tenant = await getTenantContext(session.user.id);
         await connectDB();
         const {searchParams} = new URL(req.url);
         const type = searchParams.get("type") ?? "overview";
 
         if (type === "overview") {
-            const blogs = await BlogModel.find({tenantId: session.user.id, status: "published"})
+            const blogs = await BlogModel.find({tenantId: tenant.tenantId, status: "published"})
                 .select("title slug seo publishedAt viewCount")
                 .sort({publishedAt: -1})
                 .limit(20)
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
 
         if (type === "stats") {
             const agg = await BlogModel.aggregate([
-                {$match: {tenantId: session.user.id}},
+                {$match: {tenantId: tenant.tenantId}},
                 {
                     $group: {
                         _id: null,
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (type === "sitemap") {
-            const blogs = await BlogModel.find({tenantId: session.user.id, status: "published"})
+            const blogs = await BlogModel.find({tenantId: tenant.tenantId, status: "published"})
                 .select("title slug updatedAt")
                 .sort({updatedAt: -1})
                 .lean();
@@ -96,10 +98,10 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
-
+        const tenant = await getTenantContext(session.user.id);
+        const owner = await UserModel.findById(tenant.tenantId);
         await connectDB();
-        const user = await UserModel.findById(session.user.id);
-        if (!user || user.aiCreditsUsed >= user.aiCreditsLimit) {
+        if (!owner || owner.aiCreditsUsed >= owner.aiCreditsLimit) {
             return NextResponse.json({success: false, error: "No AI credits remaining"}, {status: 403});
         }
 
@@ -151,7 +153,7 @@ Return JSON:
         });
 
         const result = JSON.parse(response.choices[0].message.content ?? "{}") as Record<string, unknown>;
-        await UserModel.findByIdAndUpdate(session.user.id, {$inc: {aiCreditsUsed: 1}});
+        await UserModel.findByIdAndUpdate(tenant.tenantId, {$inc: {aiCreditsUsed: 1}});
 
         return NextResponse.json({success: true, data: result});
     } catch (error) {
@@ -187,7 +189,7 @@ Return JSON:
 //
 //     if (type === "sitemap") {
 //       const blogs = await BlogModel.find(
-//         { tenantId: session.user.id, status: "published" },
+//         { tenantId: tenant.tenantId, status: "published" },
 //         "slug updatedAt title"
 //       ).lean();
 //
@@ -203,10 +205,10 @@ Return JSON:
 //
 //     if (type === "stats") {
 //       const [total, published, avgSEO] = await Promise.all([
-//         BlogModel.countDocuments({ tenantId: session.user.id }),
-//         BlogModel.countDocuments({ tenantId: session.user.id, status: "published" }),
+//         BlogModel.countDocuments({ tenantId: tenant.tenantId }),
+//         BlogModel.countDocuments({ tenantId: tenant.tenantId, status: "published" }),
 //         BlogModel.aggregate([
-//           { $match: { tenantId: session.user.id } },
+//           { $match: { tenantId: tenant.tenantId } },
 //           { $group: { _id: null, avg: { $avg: "$seo.seoScore" } } },
 //         ]),
 //       ]);
