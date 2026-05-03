@@ -160,6 +160,9 @@ export default withAuth(
                     pathname.startsWith("/robots") ||
                     pathname.startsWith("/preview/") ||
                     pathname.startsWith("/api/support") ||
+                    pathname.startsWith("/api/support") ||
+                    pathname.startsWith("/api/demo") ||
+                    pathname.startsWith("/api/mascot") ||
                     pathname.startsWith("/_tenants/")
                 ) {
                     return true;

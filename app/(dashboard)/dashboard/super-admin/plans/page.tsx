@@ -108,6 +108,10 @@ export default function PlansPage() {
 
     const openEdit = (plan: Plan) => {
         const copy = JSON.parse(JSON.stringify(plan)) as Plan;
+        // Initialize billingCycles if it doesn't exist
+        if (!copy.billingCycles) {
+            copy.billingCycles = [];
+        }
         // Ensure all 4 billing cycles exist
         const existingIntervals = copy.billingCycles.map((c) => c.interval);
         DEFAULT_CYCLES.forEach((dc) => {

@@ -187,18 +187,29 @@ export async function sendNewsletterCampaign({
     });
 }
 
+// services/email.ts
+
+// ... (other imports and transporter setup remain the same)
+
 export async function sendSupportReplyEmail(to: string, reply: string): Promise<void> {
     await transporter.sendMail({
         from: FROM,
         to: to,
         subject: `Re: Your support request — SEO Platform`,
-        html: baseTemplate(`
-            <p>Hi there,</p>
-            <p>Our team has replied to your support request:</p>
-            <blockquote style="border-left:4px solid #4F46E5;margin:16px 0;padding:12px 16px;background:#fff;border-radius:0 8px 8px 0">
-                ${reply}
-            </blockquote>
-            <p style="color:#9ca3af;font-size:13px">SEO Platform Support Team</p>
-        `),
-    })
+        html: `
+            <div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto">
+              <div style="background:#4F46E5;color:white;padding:24px;border-radius:12px 12px 0 0">
+                <h2 style="margin:0">Support Reply</h2>
+              </div>
+              <div style="background:#f9fafb;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:0">
+                <p>Hi there,</p>
+                <p>Our team has replied to your support request:</p>
+                <blockquote style="border-left:4px solid #4F46E5;margin:16px 0;padding:12px 16px;background:#fff;border-radius:0 8px 8px 0">
+                  ${reply}
+                </blockquote>
+                <p style="color:#9ca3af;font-size:13px">SEO Platform Support Team</p>
+              </div>
+            </div>
+          `,
+    });
 }

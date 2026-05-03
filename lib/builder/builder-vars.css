@@ -1,0 +1,14 @@
+/* lib/builder/builder-vars.css */
+:root {
+    --color-primary: #4F46E5;
+    --color-secondary: #0EA5E9;
+    --color-accent: #22C55E;
+    --color-bg: #ffffff;
+    --color-text: #111827;
+    --font-heading: Georgia, serif;
+    --font-body: system-ui, sans-serif;
+    --radius: 8px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, .10);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, .14);
+}

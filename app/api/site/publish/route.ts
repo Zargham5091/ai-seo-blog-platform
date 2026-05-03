@@ -1,0 +1,32 @@
+// ════════════════════════════════════════════════════════════════════════════
+// FILE: app/api/site/publish/route.ts
+// ════════════════════════════════════════════════════════════════════════════
+import {NextRequest, NextResponse} from "next/server";
+import {getServerSession} from "next-auth";
+import {authOptions} from "@/lib/auth";
+import {connectDB} from "@/lib/db";
+import UserSiteModel from "@/models/UserSite";
+
+export async function POST(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
+        await connectDB();
+        const site = await UserSiteModel.findOne({userId: session.user.id});
+        if (!site) return NextResponse.json({success: false, error: "Site not found"}, {status: 404});
+        // Team member publish permission check
+        if (session.user.id !== site.userId.toString()) {
+            const perm = site.pagePermissions.find((p) => p.userId.toString() === session.user.id);
+            if (!perm?.canPublish)
+                return NextResponse.json({success: false, error: "Cannot publish"}, {status: 403});
+        }
+        site.isPublished = true;
+        site.publishedAt = new Date();
+        site.lastBuiltAt = new Date();
+        await site.save();
+        return NextResponse.json({success: true, publishedAt: site.publishedAt});
+    } catch {
+        return NextResponse.json({success: false, error: "Internal server error"}, {status: 500});
+    }
+}
+

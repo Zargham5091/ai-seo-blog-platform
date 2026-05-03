@@ -15,6 +15,7 @@ import {signIn} from "next-auth/react";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {z} from "zod";
+import {SessionManager} from "@/components/dashboard/SessionManager";
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 const passwordSchema = z
@@ -416,6 +417,7 @@ export default function SettingsPage() {
 
                 {/* ── Security ── */}
                 <TabsContent value="security" className="mt-4">
+                    <SessionManager />
                     <Card>
                         <CardHeader>
                             <CardTitle>Change Password</CardTitle>
