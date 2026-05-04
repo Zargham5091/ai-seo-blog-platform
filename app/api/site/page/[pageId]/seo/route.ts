@@ -1,4 +1,4 @@
-// app/api/site/page/[pageId]/components/route.ts
+// app/api/site/page/[pageId]/seo/route.ts
 
 import {NextRequest, NextResponse} from "next/server";
 import {getServerSession} from "next-auth";
@@ -15,33 +15,23 @@ export async function PATCH(req: NextRequest, {params}: Params) {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
 
-        const {components} = await req.json();
+        const {seo, customCSS} = await req.json();
         await connectDB();
 
         const site = await UserSiteModel.findOne({userId: session.user.id});
         if (!site) return NextResponse.json({success: false, error: "Site not found"}, {status: 404});
 
-        // Team member page access check
-        if (site.pagePermissions?.length > 0) {
-            const perm = site.pagePermissions.find(
-                (p: { userId: { toString(): string }; pageIds: string[] }) =>
-                    p.userId.toString() === session.user.id
-            );
-            if (perm && perm.pageIds.length > 0 && !perm.pageIds.includes(params.pageId)) {
-                return NextResponse.json({success: false, error: "No access to this page"}, {status: 403});
-            }
-        }
-
         const pageIdx = site.pages.findIndex((p: { pageId: string }) => p.pageId === params.pageId);
         if (pageIdx === -1) return NextResponse.json({success: false, error: "Page not found"}, {status: 404});
 
-        site.pages[pageIdx].components = components;
+        if (seo) site.pages[pageIdx].seo = seo;
+        if (customCSS !== undefined) site.pages[pageIdx].customCSS = customCSS;
         site.pages[pageIdx].updatedAt = new Date();
-        await site.save();
 
+        await site.save();
         return NextResponse.json({success: true});
     } catch (err) {
-        console.error("[SAVE_COMPONENTS]", err);
-        return NextResponse.json({success: false, error: "Failed to save"}, {status: 500});
+        console.error("[PAGE_SEO_PATCH]", err);
+        return NextResponse.json({success: false, error: "Internal server error"}, {status: 500});
     }
 }

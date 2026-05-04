@@ -319,6 +319,7 @@ function SpeechBubble({
 }) {
     return (
         <div
+            onMouseDown={(e) => e.stopPropagation()}
             className="absolute bottom-full mb-3 right-0 w-64 sm:w-72 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
             style={{animation: "bubbleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards"}}
         >
@@ -326,7 +327,7 @@ function SpeechBubble({
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-800"
                  style={{background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}08)`}}>
                 <span className="text-xs font-bold" style={{color: primaryColor}}>{name}</span>
-                <button onClick={onDismiss}
+                <button onClick={(e) => { e.stopPropagation(); onDismiss(); }}
                         className="h-5 w-5 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
                     <X className="h-3 w-3"/>
                 </button>
@@ -341,7 +342,7 @@ function SpeechBubble({
             {action && (
                 <div className="px-4 pb-3">
                     <button
-                        onClick={() => onAction(action)}
+                        onClick={(e) =>{e.stopPropagation(); onAction(action)}}
                         className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full text-white transition-all hover:scale-105 active:scale-95"
                         style={{background: `linear-gradient(135deg, ${primaryColor}, #0EA5E9)`}}
                     >

@@ -40,7 +40,6 @@ export async function PATCH(req: NextRequest) {
 }
 
 
-
 // import {NextRequest, NextResponse} from "next/server";
 // import {getServerSession} from "next-auth";
 // import {authOptions} from "@/lib/auth";
