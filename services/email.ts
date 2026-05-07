@@ -213,3 +213,188 @@ export async function sendSupportReplyEmail(to: string, reply: string): Promise<
           `,
     });
 }
+
+
+// services/email.ts — ADDITIONS ONLY
+//
+// ADD these three functions to the BOTTOM of your existing services/email.ts
+// Do NOT replace anything. Just append from the comment below.
+//
+// These functions use the same `transporter`, `FROM`, `APP_URL`, and
+// `baseTemplate` that already exist in your file.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper — format currency for email templates
+// ─────────────────────────────────────────────────────────────────────────────
+function formatMoney(amount: number, currency = 'USD'): string {
+    return new Intl.NumberFormat('en-US', {style: 'currency', currency}).format(amount);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contact form notification → site owner
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendContactNotificationEmail(
+    ownerUserId: string,
+    siteName: string,
+    fields: Record<string, string>
+): Promise<void> {
+    // Look up owner email — import UserModel at top of email.ts if not already
+    // import UserModel from '@/models/User';
+    // import { connectDB } from '@/lib/db';
+    const {connectDB} = await import('@/lib/db');
+    const UserModel = (await import('@/models/User')).default;
+    await connectDB();
+    const owner = await UserModel.findById(ownerUserId).select('email name').lean();
+    if (!owner?.email) return;
+
+    const fieldRows = Object.entries(fields)
+        .map(([k, v]) => `<tr><td style="padding:8px 12px;font-weight:600;color:#374151;background:#f9fafb;width:30%;border:1px solid #e5e7eb">${k}</td><td style="padding:8px 12px;color:#111827;border:1px solid #e5e7eb">${v}</td></tr>`)
+        .join('');
+
+    await transporter.sendMail({
+        from: FROM,
+        to: owner.email as string,
+        subject: `📬 New contact form submission — ${siteName}`,
+        html: baseTemplate(`
+      <h2>New Contact Form Submission</h2>
+      <p>Someone submitted your contact form on <strong>${siteName}</strong>.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        ${fieldRows}
+      </table>
+      <a href="${APP_URL}/dashboard/admin/site/dashboard" class="btn">View in Dashboard →</a>
+    `),
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Order notification → site owner (new order received)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendOrderNotificationEmail(
+    ownerUserId: string,
+    siteName: string,
+    order: {
+        orderNumber: string;
+        channel: string;
+        total: number;
+        currency: string;
+        customer: { name: string; email?: string; phone?: string };
+        items: Array<{ productName: string; quantity: number; price: number }>;
+    }
+): Promise<void> {
+    const {connectDB} = await import('@/lib/db');
+    const UserModel = (await import('@/models/User')).default;
+    await connectDB();
+    const owner = await UserModel.findById(ownerUserId).select('email').lean();
+    if (!owner?.email) return;
+
+    const itemRows = order.items
+        .map(i => `<tr>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb">${i.productName}</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;text-align:center">${i.quantity}</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;text-align:right">${formatMoney(i.price * i.quantity, order.currency)}</td>
+    </tr>`)
+        .join('');
+
+    const channelBadge = order.channel === 'whatsapp' ? '💬 WhatsApp' : order.channel === 'email' ? '📧 Email' : '🛒 Direct';
+
+    await transporter.sendMail({
+        from: FROM,
+        to: owner.email as string,
+        subject: `🛒 New order ${order.orderNumber} — ${siteName}`,
+        html: baseTemplate(`
+      <h2>New Order Received! 🎉</h2>
+      <p>You have a new order on <strong>${siteName}</strong> via ${channelBadge}.</p>
+
+      <table style="width:100%;border-collapse:collapse;margin:12px 0">
+        <tr>
+          <td style="padding:8px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Order #</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb;font-family:monospace">${order.orderNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Customer</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">${order.customer.name}${order.customer.email ? ` · ${order.customer.email}` : ''}${order.customer.phone ? ` · ${order.customer.phone}` : ''}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Total</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:700">${formatMoney(order.total, order.currency)}</td>
+        </tr>
+      </table>
+
+      <h3 style="margin-top:24px">Items</h3>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f3f4f6">
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left">Product</th>
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:center">Qty</th>
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:right">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:700;text-align:right">Total</td>
+            <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:700;text-align:right">${formatMoney(order.total, order.currency)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <a href="${APP_URL}/dashboard/admin/site/dashboard" class="btn">Manage Orders →</a>
+    `),
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Order confirmation → customer
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendOrderConfirmationEmail(
+    customerEmail: string,
+    customerName: string,
+    order: {
+        orderNumber: string;
+        total: number;
+        currency: string;
+        items: Array<{ productName: string; quantity: number; price: number; variant?: string }>;
+    }
+): Promise<void> {
+    const itemRows = order.items
+        .map(i => `<tr>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb">${i.productName}${i.variant ? ` <span style="color:#6b7280;font-size:12px">(${i.variant})</span>` : ''}</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;text-align:center">${i.quantity}</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;text-align:right">${formatMoney(i.price * i.quantity, order.currency)}</td>
+    </tr>`)
+        .join('');
+
+    await transporter.sendMail({
+        from: FROM,
+        to: customerEmail,
+        subject: `Order confirmed — ${order.orderNumber}`,
+        html: baseTemplate(`
+      <h2>Thanks for your order, ${customerName}! 🎉</h2>
+      <p>We've received your order and will be in touch soon to confirm the details.</p>
+
+      <p style="font-size:13px;color:#6b7280">Order number: <strong style="font-family:monospace;color:#111827">${order.orderNumber}</strong></p>
+
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        <thead>
+          <tr style="background:#f3f4f6">
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:left">Item</th>
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:center">Qty</th>
+            <th style="padding:8px 12px;border:1px solid #e5e7eb;text-align:right">Price</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:700;text-align:right">Total</td>
+            <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:700;text-align:right">${formatMoney(order.total, order.currency)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p style="color:#6b7280;font-size:13px">
+        If you have any questions, please reply to this email.
+      </p>
+    `),
+    });
+}

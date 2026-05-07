@@ -1,9 +1,10 @@
 "use client";
 import {useState} from "react";
-import {Search, Sparkles, Copy, Check, TrendingUp, Plus} from "lucide-react";
+import {Search, Sparkles, Copy, Check} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input, Label, Badge} from "@/components/ui/form-elements";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {AILoader} from "@/components/loader/AiLoader";
 
 interface Keyword {
     keyword: string;
@@ -65,146 +66,154 @@ export default function KeywordsPage() {
     };
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Search className="h-6 w-6 text-indigo-500"/> Keyword Research
-                </h1>
-                <p className="text-muted-foreground text-sm">Find high-value keywords with AI-powered analysis</p>
-            </div>
+        <>
+            <AILoader
+                isGenerating={isResearching}
+                title="Researching your keyword…"
+                subtitle="Crafting SEO-optimised keywords"
+            />
 
-            <Card>
-                <CardContent className="p-4 space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-2 space-y-1.5">
-                            <Label className="text-xs">Seed Keyword *</Label>
-                            <Input
-                                value={seed}
-                                onChange={(e) => setSeed(e.target.value)}
-                                placeholder="e.g. SEO tools, content marketing, web design..."
-                                onKeyDown={(e) => e.key === "Enter" && research()}
-                                autoFocus
-                            />
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <Search className="h-6 w-6 text-indigo-500"/> Keyword Research
+                    </h1>
+                    <p className="text-muted-foreground text-sm">Find high-value keywords with AI-powered analysis</p>
+                </div>
+
+                <Card>
+                    <CardContent className="p-4 space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-xs">Seed Keyword *</Label>
+                                <Input
+                                    value={seed}
+                                    onChange={(e) => setSeed(e.target.value)}
+                                    placeholder="e.g. SEO tools, content marketing, web design..."
+                                    onKeyDown={(e) => e.key === "Enter" && research()}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Niche/Industry (optional)</Label>
+                                <Input value={niche} onChange={(e) => setNiche(e.target.value)}
+                                       placeholder="e.g. SaaS, e-commerce..."/>
+                            </div>
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs">Niche/Industry (optional)</Label>
-                            <Input value={niche} onChange={(e) => setNiche(e.target.value)}
-                                   placeholder="e.g. SaaS, e-commerce..."/>
-                        </div>
-                    </div>
-                    {error && <p className="text-sm text-destructive">{error}</p>}
-                    <Button variant="gradient" onClick={research} isLoading={isResearching} className="gap-2">
-                        <Sparkles className="h-4 w-4"/>
-                        {isResearching ? "Researching keywords..." : "Research Keywords — 1 AI Credit"}
-                    </Button>
-                </CardContent>
-            </Card>
+                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        <Button variant="gradient" onClick={research} isLoading={isResearching} className="gap-2">
+                            <Sparkles className="h-4 w-4"/>
+                            {isResearching ? "Researching keywords..." : "Research Keywords — 1 AI Credit"}
+                        </Button>
+                    </CardContent>
+                </Card>
 
-            {result && (
-                <div className="space-y-6">
-                    {/* Content ideas */}
-                    {result.contentIdeas.length > 0 && (
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-indigo-500"/> Blog Post Ideas
-                                    for &quot;{result.seedKeyword}&quot;
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid md:grid-cols-2 gap-2">
-                                    {result.contentIdeas.map((idea, i) => (
-                                        <div key={i}
-                                             className="flex items-center justify-between gap-2 p-2.5 rounded-lg border hover:bg-muted/30 transition-colors group">
-                                            <span className="text-sm">{idea}</span>
-                                            <div
-                                                className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => copy(idea)}
-                                                        className="text-muted-foreground hover:text-indigo-600 transition-colors">
-                                                    {copiedKw === idea ?
-                                                        <Check className="h-3.5 w-3.5 text-emerald-500"/> :
-                                                        <Copy className="h-3.5 w-3.5"/>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Keywords table */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">{result.keywords.length} Keywords Found</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="rounded-xl border overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted/50">
-                                        <tr>
-                                            <th className="text-left px-4 py-3 font-medium text-muted-foreground">Keyword</th>
-                                            <th className="text-right px-4 py-3 font-medium text-muted-foreground">Volume</th>
-                                            <th className="text-center px-4 py-3 font-medium text-muted-foreground">Difficulty</th>
-                                            <th className="text-right px-4 py-3 font-medium text-muted-foreground">CPC</th>
-                                            <th className="text-center px-4 py-3 font-medium text-muted-foreground">Intent</th>
-                                            <th className="text-center px-4 py-3 font-medium text-muted-foreground">Trend</th>
-                                            <th className="px-4 py-3"/>
-                                        </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                        {result.keywords.map((kw) => (
-                                            <tr key={kw.keyword} className="hover:bg-muted/20 transition-colors">
-                                                <td className="px-4 py-3 font-medium">{kw.keyword}</td>
-                                                <td className="px-4 py-3 text-right font-mono">{kw.searchVolume.toLocaleString()}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <div className="flex items-center justify-center gap-1.5">
-                                                        <div
-                                                            className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full rounded-full"
-                                                                style={{
-                                                                    width: `${kw.difficulty}%`,
-                                                                    background: kw.difficulty <= 30 ? "#22c55e" : kw.difficulty <= 60 ? "#f59e0b" : "#ef4444",
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <span
-                                                            className={`text-xs font-medium ${DIFFICULTY_COLOR(kw.difficulty)}`}>
-                                {DIFFICULTY_LABEL(kw.difficulty)}
-                              </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-mono">${kw.cpc.toFixed(2)}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <Badge variant={INTENT_BADGE[kw.intent] ?? "secondary"}
-                                                           className="text-xs capitalize">
-                                                        {kw.intent}
-                                                    </Badge>
-                                                </td>
-                                                <td className={`px-4 py-3 text-center font-medium text-sm ${TREND_COLOR[kw.trend]}`}>
-                                                    {TREND_ICON[kw.trend]} {kw.trend}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <button onClick={() => copy(kw.keyword)}
+                {result && (
+                    <div className="space-y-6">
+                        {/* Content ideas */}
+                        {result.contentIdeas.length > 0 && (
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-indigo-500"/> Blog Post Ideas
+                                        for &quot;{result.seedKeyword}&quot;
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid md:grid-cols-2 gap-2">
+                                        {result.contentIdeas.map((idea, i) => (
+                                            <div key={i}
+                                                 className="flex items-center justify-between gap-2 p-2.5 rounded-lg border hover:bg-muted/30 transition-colors group">
+                                                <span className="text-sm">{idea}</span>
+                                                <div
+                                                    className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => copy(idea)}
                                                             className="text-muted-foreground hover:text-indigo-600 transition-colors">
-                                                        {copiedKw === kw.keyword ?
+                                                        {copiedKw === idea ?
                                                             <Check className="h-3.5 w-3.5 text-emerald-500"/> :
                                                             <Copy className="h-3.5 w-3.5"/>}
                                                     </button>
-                                                </td>
-                                            </tr>
+                                                </div>
+                                            </div>
                                         ))}
-                                        </tbody>
-                                    </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Keywords table */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm">{result.keywords.length} Keywords Found</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="rounded-xl border overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Keyword</th>
+                                                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Volume</th>
+                                                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Difficulty</th>
+                                                <th className="text-right px-4 py-3 font-medium text-muted-foreground">CPC</th>
+                                                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Intent</th>
+                                                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Trend</th>
+                                                <th className="px-4 py-3"/>
+                                            </tr>
+                                            </thead>
+                                            <tbody className="divide-y">
+                                            {result.keywords.map((kw) => (
+                                                <tr key={kw.keyword} className="hover:bg-muted/20 transition-colors">
+                                                    <td className="px-4 py-3 font-medium">{kw.keyword}</td>
+                                                    <td className="px-4 py-3 text-right font-mono">{kw.searchVolume.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            <div
+                                                                className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full"
+                                                                    style={{
+                                                                        width: `${kw.difficulty}%`,
+                                                                        background: kw.difficulty <= 30 ? "#22c55e" : kw.difficulty <= 60 ? "#f59e0b" : "#ef4444",
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <span
+                                                                className={`text-xs font-medium ${DIFFICULTY_COLOR(kw.difficulty)}`}>
+                                {DIFFICULTY_LABEL(kw.difficulty)}
+                              </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono">${kw.cpc.toFixed(2)}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <Badge variant={INTENT_BADGE[kw.intent] ?? "secondary"}
+                                                               className="text-xs capitalize">
+                                                            {kw.intent}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className={`px-4 py-3 text-center font-medium text-sm ${TREND_COLOR[kw.trend]}`}>
+                                                        {TREND_ICON[kw.trend]} {kw.trend}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <button onClick={() => copy(kw.keyword)}
+                                                                className="text-muted-foreground hover:text-indigo-600 transition-colors">
+                                                            {copiedKw === kw.keyword ?
+                                                                <Check className="h-3.5 w-3.5 text-emerald-500"/> :
+                                                                <Copy className="h-3.5 w-3.5"/>}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-        </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
 

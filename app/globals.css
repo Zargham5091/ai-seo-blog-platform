@@ -102,3 +102,41 @@
 /* Page transition */
 .page-enter { @apply opacity-0 translate-y-2; }
 .page-enter-active { @apply opacity-100 translate-y-0 transition-all duration-300; }
+
+
+/* ─────────────────────────────────────────────────────────────
+   Paste these into your globals.css inside @layer utilities
+   ───────────────────────────────────────────────────────────── */
+
+@layer utilities {
+
+  /* Loader — glitter tail arc */
+  @keyframes loader-tail {
+    0%,100% { stroke-dashoffset: 56; opacity: .15; }
+    50%      { stroke-dashoffset: 8;  opacity: 1;   }
+  }
+
+  /* Loader — bouncing dots */
+  @keyframes loader-dot {
+    0%,100% { transform: scale(.4); opacity: .2; }
+    50%      { transform: scale(1);  opacity: 1;  }
+  }
+
+  /* Loader — glitter sparks off the head */
+  @keyframes loader-glit1 {
+    0%,100% { opacity: 0; transform: translate(0,0) scale(0); }
+    30%     { opacity: 1; transform: translate(-4px,-6px) scale(1); }
+    70%     { opacity: .2; }
+  }
+  @keyframes loader-glit2 {
+    0%,100% { opacity: 0; transform: translate(0,0) scale(0); }
+    35%     { opacity: .9; transform: translate(5px,-5px) scale(1); }
+    70%     { opacity: .1; }
+  }
+  @keyframes loader-glit3 {
+    0%,100% { opacity: 0; transform: translate(0,0) scale(0); }
+    40%     { opacity: .7; transform: translate(-3px,4px) scale(1); }
+    70%     { opacity: .1; }
+  }
+
+}

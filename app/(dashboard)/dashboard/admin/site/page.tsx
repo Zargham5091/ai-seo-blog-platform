@@ -5,14 +5,13 @@
  * duplicate, mobile-check, version-history, SEO panel, export, AI, publish.
  */
 
-import {useCallback, useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {
     Laptop, Tablet, Smartphone, Globe, Sparkles, Plus, Eye,
     Layers, Trash2, EyeOff, Undo, Redo, Save,
-    Send, X, Search, Settings, Layout, Navigation, PanelBottom,
-    Puzzle, Code, Loader2, Check, Palette,
+    Send, X, Search, Navigation, Loader2, Check, Palette,
     Copy, Download, Upload, FileText, AlertTriangle,
-    ChevronLeft, Menu,
+    Menu, GripVertical, Share2, Wand2, Link2,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input, Label} from "@/components/ui/form-elements";
@@ -24,13 +23,43 @@ import {useSession} from "next-auth/react";
 import ThemeEditor, {type SiteTheme} from "@/components/builder/ThemeEditor";
 import PageManager from "@/components/builder/PageManager";
 import GlobalSections from "@/components/builder/GlobalSections";
+import {PersonalityOnboarding} from '@/components/builder/PersonalityOnboarding';
+import {MagicAIPanel} from '@/components/builder/MagicAIPanel';
+import {AssetLibrary} from '@/components/builder/AssetLibrary';
+import {OGPreviewEditor} from '@/components/builder/OGPreviewEditor';
+import {LiveSEOScore} from '@/components/builder/LiveSEOScore';
+import {
+    DndContext, DragOverlay, PointerSensor, KeyboardSensor,
+    useSensor, useSensors, closestCenter,
+    type DragEndEvent, type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext, sortableKeyboardCoordinates,
+    horizontalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable';
+import {SortableLayerItem, CAT_ICONS} from '@/components/builder/SortableLayerItem';
 
+import {AnimationStudio} from '@/components/builder/AnimationStudio';
+import {VibeCheckPanel} from '@/components/builder/VibeCheckPanel'
+import Link from "next/link";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 type DevicePreview = "desktop" | "tablet" | "mobile";
-type RightPanel = "props" | "theme" | "pages" | "global" | "seo" | "export" | null;
+type RightPanel =
+    "props"
+    | "theme"
+    | "pages"
+    | "global"
+    | "seo"
+    | "export"
+    | "og"
+    | "magic"
+    | "assets"
+    | "clone"
+    | "animation"
+    | null;
 type ComponentCategory =
     "navbar"
     | "hero"
@@ -84,6 +113,7 @@ interface CanvasComponent {
     isVisible: boolean;
     isLocked: boolean;
     order: number;
+    animationPreset?: string;
 }
 
 interface PageSEO {
@@ -140,17 +170,7 @@ interface UserSite {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEVICE_WIDTHS: Record<DevicePreview, string> = {desktop: "100%", tablet: "768px", mobile: "390px"};
-const CAT_ICONS: Record<string, React.ElementType> = {
-    navbar: Navigation,
-    hero: Layers,
-    section: Layout,
-    footer: PanelBottom,
-    layout: Layout,
-    widget: Puzzle,
-    animation: Sparkles,
-    template: Code,
-    integration: Settings
-};
+
 const SITE_TYPES = [{type: "blog", emoji: "✍️", label: "Blog"}, {
     type: "portfolio",
     emoji: "🎨",
@@ -166,59 +186,349 @@ const CATS = ["all", "navbar", "hero", "section", "footer", "widget", "animation
 // Prop Field
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PropField({schema, value, onChange}: { schema: PropSchema; value: unknown; onChange: (v: unknown) => void }) {
+function PropField({
+                       schema,
+                       value,
+                       onChange,
+                   }: {
+    schema: PropSchema;
+    value: unknown;
+    onChange: (v: unknown) => void;
+}) {
     const s = String(value ?? "");
-    if (schema.type === "boolean") return <label className="flex items-center gap-2 cursor-pointer py-1"><input
-        type="checkbox" checked={Boolean(value)} onChange={e => onChange(e.target.checked)}
-        className="rounded h-4 w-4"/><span className="text-sm">{schema.label}</span></label>;
-    if (schema.type === "color") return <div className="space-y-1"><Label className="text-xs">{schema.label}</Label>
-        <div className="flex gap-2"><input type="color" value={s || "#4F46E5"} onChange={e => onChange(e.target.value)}
-                                           className="h-8 w-12 rounded border cursor-pointer"/><Input value={s}
-                                                                                                      onChange={e => onChange(e.target.value)}
-                                                                                                      className="h-8 text-xs font-mono flex-1"/>
-        </div>
-    </div>;
-    if (schema.type === "select") return <div className="space-y-1"><Label
-        className="text-xs">{schema.label}</Label><select value={s} onChange={e => onChange(e.target.value)}
-                                                          className="w-full h-8 rounded-md border bg-background px-2 text-sm">{(schema.options ?? []).map(o =>
-        <option key={o} value={o}>{o}</option>)}</select></div>;
-    if (schema.type === "textarea" || schema.type === "richtext") return <div className="space-y-1"><Label
-        className="text-xs">{schema.label}</Label><textarea value={s} onChange={e => onChange(e.target.value)} rows={3}
-                                                            placeholder={schema.placeholder}
-                                                            className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-    </div>;
-    if (schema.type === "array") {
-        const arr = Array.isArray(value) ? value as Record<string, unknown>[] : [];
-        return <div className="space-y-2"><Label className="text-xs">{schema.label}</Label>{arr.map((item, idx) => <div
-            key={idx} className="border rounded-lg p-2 space-y-1.5 bg-muted/30">
-            <div className="flex justify-between"><span className="text-xs text-muted-foreground">Item {idx + 1}</span>
-                <button onClick={() => onChange(arr.filter((_, i) => i !== idx))} className="text-red-400"><X
-                    className="h-3 w-3"/></button>
-            </div>
-            {(schema.arrayItemSchema ?? []).map(sub => <PropField key={sub.key} schema={sub} value={item[sub.key]}
-                                                                  onChange={v => {
-                                                                      const u = [...arr];
-                                                                      u[idx] = {...item, [sub.key]: v};
-                                                                      onChange(u);
-                                                                  }}/>)}</div>)}
-            <button onClick={() => {
-                const ni: Record<string, unknown> = {};
-                (schema.arrayItemSchema ?? []).forEach(s => {
-                    ni[s.key] = s.defaultValue ?? ""
-                });
-                onChange([...arr, ni]);
-            }}
-                    className="w-full border border-dashed rounded-lg py-2 text-xs text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center gap-1">
-                <Plus className="h-3 w-3"/>Add {schema.label} Item
-            </button>
-        </div>;
+
+    // ── Boolean ────────────────────────────────────────────────────────────────
+    if (schema.type === "boolean") {
+        return (
+            <label className="flex items-center gap-2 cursor-pointer py-1">
+                <input
+                    type="checkbox"
+                    checked={Boolean(value)}
+                    onChange={(e) => onChange(e.target.checked)}
+                    className="rounded h-4 w-4"
+                />
+                <span className="text-sm">{schema.label}</span>
+            </label>
+        );
     }
-    return <div className="space-y-1"><Label className="text-xs">{schema.label}{schema.required &&
-        <span className="text-red-400 ml-0.5">*</span>}</Label><Input
-        type={schema.type === "number" ? "number" : "text"} value={s}
-        onChange={e => onChange(schema.type === "number" ? Number(e.target.value) : e.target.value)}
-        placeholder={schema.placeholder} className="h-8 text-sm"/></div>;
+
+    // ── Color ──────────────────────────────────────────────────────────────────
+    if (schema.type === "color") {
+        return (
+            <div className="space-y-1">
+                <Label className="text-xs">{schema.label}</Label>
+                <div className="flex gap-2">
+                    <input
+                        type="color"
+                        value={s || "#4F46E5"}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="h-8 w-12 rounded border cursor-pointer"
+                    />
+                    <Input
+                        value={s}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="h-8 text-xs font-mono flex-1"
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // ── Select ─────────────────────────────────────────────────────────────────
+    if (schema.type === "select") {
+        return (
+            <div className="space-y-1">
+                <Label className="text-xs">{schema.label}</Label>
+                <select
+                    value={s}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full h-8 rounded-md border bg-background px-2 text-sm"
+                >
+                    {(schema.options ?? []).map((o) => (
+                        <option key={o} value={o}>
+                            {o}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    }
+
+    // ── Textarea / Richtext ────────────────────────────────────────────────────
+    if (schema.type === "textarea" || schema.type === "richtext") {
+        return (
+            <div className="space-y-1">
+                <Label className="text-xs">{schema.label}</Label>
+                <textarea
+                    value={s}
+                    onChange={(e) => onChange(e.target.value)}
+                    rows={3}
+                    placeholder={schema.placeholder}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+            </div>
+        );
+    }
+
+    // ── Image — with upload + URL fallback ────────────────────────────────────
+    if (schema.type === "image") {
+        return <ImagePropField label={schema.label} value={s} onChange={onChange}/>;
+    }
+
+    // ── Array ──────────────────────────────────────────────────────────────────
+    if (schema.type === "array") {
+        const arr = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+        return (
+            <div className="space-y-2">
+                <Label className="text-xs">{schema.label}</Label>
+                {arr.map((item, idx) => (
+                    <div key={idx} className="border rounded-lg p-2 space-y-1.5 bg-muted/30">
+                        <div className="flex justify-between">
+                            <span className="text-xs text-muted-foreground">Item {idx + 1}</span>
+                            <button
+                                onClick={() => onChange(arr.filter((_, i) => i !== idx))}
+                                className="text-red-400 hover:text-red-600"
+                            >
+                                <X className="h-3 w-3"/>
+                            </button>
+                        </div>
+                        {(schema.arrayItemSchema ?? []).map((sub) => (
+                            <PropField
+                                key={sub.key}
+                                schema={sub}
+                                value={item[sub.key]}
+                                onChange={(v) => {
+                                    const u = [...arr];
+                                    u[idx] = {...item, [sub.key]: v};
+                                    onChange(u);
+                                }}
+                            />
+                        ))}
+                    </div>
+                ))}
+                <button
+                    onClick={() => {
+                        const ni: Record<string, unknown> = {};
+                        (schema.arrayItemSchema ?? []).forEach((s) => {
+                            ni[s.key] = s.defaultValue ?? "";
+                        });
+                        onChange([...arr, ni]);
+                    }}
+                    className="w-full border border-dashed rounded-lg py-2 text-xs text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center gap-1"
+                >
+                    <Plus className="h-3 w-3"/>
+                    Add {schema.label} Item
+                </button>
+            </div>
+        );
+    }
+
+    // ── Default: text / number / url ──────────────────────────────────────────
+    return (
+        <div className="space-y-1">
+            <Label className="text-xs">
+                {schema.label}
+                {schema.required && <span className="text-red-400 ml-0.5">*</span>}
+            </Label>
+            <Input
+                type={schema.type === "number" ? "number" : "text"}
+                value={s}
+                onChange={(e) =>
+                    onChange(schema.type === "number" ? Number(e.target.value) : e.target.value)
+                }
+                placeholder={schema.placeholder}
+                className="h-8 text-sm"
+            />
+        </div>
+    );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ImagePropField
+//
+// Separate sub-component so it can manage its own upload state without
+// polluting the parent PropField with useState hooks (hooks cannot be
+// called conditionally).
+//
+// Place this function DIRECTLY ABOVE PropField in page.tsx.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ImagePropField({
+                            label,
+                            value,
+                            onChange,
+                        }: {
+    label: string;
+    value: string;
+    onChange: (v: unknown) => void;
+}) {
+    const [uploading, setUploading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Client-side guard: 5MB, images only
+        if (file.size > 5 * 1024 * 1024) {
+            setError("File must be under 5MB");
+            return;
+        }
+        if (!file.type.startsWith("image/")) {
+            setError("Only image files are allowed");
+            return;
+        }
+
+        setError(null);
+        setUploading(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const res = await fetch("/api/upload", {method: "POST", body: formData});
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                throw new Error(data.error ?? "Upload failed");
+            }
+
+            onChange(data.url);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Upload failed");
+        } finally {
+            setUploading(false);
+            // Reset file input so the same file can be re-uploaded if needed
+            if (inputRef.current) inputRef.current.value = "";
+        }
+    }
+
+    return (
+        <div className="space-y-1.5">
+            <Label className="text-xs">{label}</Label>
+
+            {/* Current image preview */}
+            {value && (
+                <div
+                    className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50 aspect-video">
+                    <img
+                        src={value}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                    />
+                    <button
+                        onClick={() => onChange("")}
+                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove image"
+                    >
+                        <X className="h-3 w-3"/>
+                    </button>
+                </div>
+            )}
+
+            {/* Upload button */}
+            <button
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="w-full flex items-center justify-center gap-2 h-8 rounded-md border border-dashed text-xs text-muted-foreground hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+                {uploading ? (
+                    <>
+                        <Loader2 className="h-3 w-3 animate-spin"/>
+                        Uploading…
+                    </>
+                ) : (
+                    <>
+                        <Upload className="h-3 w-3"/>
+                        {value ? "Replace image" : "Upload image"}
+                    </>
+                )}
+            </button>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+            />
+
+            {/* URL fallback input */}
+            <Input
+                type="url"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Or paste image URL…"
+                className="h-8 text-xs"
+            />
+
+            {/* Error message */}
+            {error && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 shrink-0"/>
+                    {error}
+                </p>
+            )}
+        </div>
+    );
+}
+
+// function PropField({schema, value, onChange}: { schema: PropSchema; value: unknown; onChange: (v: unknown) => void }) {
+//     const s = String(value ?? "");
+//     if (schema.type === "boolean") return <label className="flex items-center gap-2 cursor-pointer py-1"><input
+//         type="checkbox" checked={Boolean(value)} onChange={e => onChange(e.target.checked)}
+//         className="rounded h-4 w-4"/><span className="text-sm">{schema.label}</span></label>;
+//     if (schema.type === "color") return <div className="space-y-1"><Label className="text-xs">{schema.label}</Label>
+//         <div className="flex gap-2"><input type="color" value={s || "#4F46E5"} onChange={e => onChange(e.target.value)}
+//                                            className="h-8 w-12 rounded border cursor-pointer"/><Input value={s}
+//                                                                                                       onChange={e => onChange(e.target.value)}
+//                                                                                                       className="h-8 text-xs font-mono flex-1"/>
+//         </div>
+//     </div>;
+//     if (schema.type === "select") return <div className="space-y-1"><Label
+//         className="text-xs">{schema.label}</Label><select value={s} onChange={e => onChange(e.target.value)}
+//                                                           className="w-full h-8 rounded-md border bg-background px-2 text-sm">{(schema.options ?? []).map(o =>
+//         <option key={o} value={o}>{o}</option>)}</select></div>;
+//     if (schema.type === "textarea" || schema.type === "richtext") return <div className="space-y-1"><Label
+//         className="text-xs">{schema.label}</Label><textarea value={s} onChange={e => onChange(e.target.value)} rows={3}
+//                                                             placeholder={schema.placeholder}
+//                                                             className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+//     </div>;
+//     if (schema.type === "array") {
+//         const arr = Array.isArray(value) ? value as Record<string, unknown>[] : [];
+//         return <div className="space-y-2"><Label className="text-xs">{schema.label}</Label>{arr.map((item, idx) => <div
+//             key={idx} className="border rounded-lg p-2 space-y-1.5 bg-muted/30">
+//             <div className="flex justify-between"><span className="text-xs text-muted-foreground">Item {idx + 1}</span>
+//                 <button onClick={() => onChange(arr.filter((_, i) => i !== idx))} className="text-red-400"><X
+//                     className="h-3 w-3"/></button>
+//             </div>
+//             {(schema.arrayItemSchema ?? []).map(sub => <PropField key={sub.key} schema={sub} value={item[sub.key]}
+//                                                                   onChange={v => {
+//                                                                       const u = [...arr];
+//                                                                       u[idx] = {...item, [sub.key]: v};
+//                                                                       onChange(u);
+//                                                                   }}/>)}</div>)}
+//             <button onClick={() => {
+//                 const ni: Record<string, unknown> = {};
+//                 (schema.arrayItemSchema ?? []).forEach(s => {
+//                     ni[s.key] = s.defaultValue ?? ""
+//                 });
+//                 onChange([...arr, ni]);
+//             }}
+//                     className="w-full border border-dashed rounded-lg py-2 text-xs text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center gap-1">
+//                 <Plus className="h-3 w-3"/>Add {schema.label} Item
+//             </button>
+//         </div>;
+//     }
+//     return <div className="space-y-1"><Label className="text-xs">{schema.label}{schema.required &&
+//         <span className="text-red-400 ml-0.5">*</span>}</Label><Input
+//         type={schema.type === "number" ? "number" : "text"} value={s}
+//         onChange={e => onChange(schema.type === "number" ? Number(e.target.value) : e.target.value)}
+//         placeholder={schema.placeholder} className="h-8 text-sm"/></div>;
+// }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SEO Panel
@@ -357,9 +667,9 @@ function SiteTypeOnboarding({onSelect}: { onSelect: (type: string, name: string)
             className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
             <div className="max-w-3xl w-full">
                 <div className="text-center mb-10">
-                    <span
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-4"><Sparkles
-                        className="h-3.5 w-3.5"/>Website Builder</span>
+                        <span
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-4"><Sparkles
+                            className="h-3.5 w-3.5"/>Website Builder</span>
                     <h1 className="text-4xl font-bold mb-3">What are you building?</h1>
                     <p className="text-muted-foreground text-lg">Pick a starting point — change anything later.</p>
                 </div>
@@ -431,6 +741,22 @@ export default function SiteBuilderPage() {
     const [mobileIssues, setMobileIssues] = useState<MobileIssue[]>([]);
     const [checkingMobile, setCheckingMobile] = useState(false);
     const [showMobilePanel, setShowMobilePanel] = useState(false);
+    const [showPersonality, setShowPersonality] = useState(false);
+
+    // ── DnD layer strip ───────────────────────────────────────────────────
+    const [dragOverlayLabel, setDragOverlayLabel] = useState<string | null>(null);
+    const dndSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // ── URL Clone ─────────────────────────────────────────────────────────
+    const [cloneUrl, setCloneUrl] = useState('');
+    const [cloneLoading, setCloneLoading] = useState(false);
+    const [cloneError, setCloneError] = useState('');
+
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {activationConstraint: {distance: 8}}),
+        useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
+    );
+
 
     // Load
     useEffect(() => {
@@ -466,6 +792,25 @@ export default function SiteBuilderPage() {
     const selectedComp = components.find(c => c.instanceId === selectedInstanceId) ?? null;
     const filteredLib = library.filter(c => (libCat === "all" || c.category === libCat) && (!libSearch || c.name.toLowerCase().includes(libSearch.toLowerCase())));
 
+    const addComp = (lc: LibraryComponent) => {
+        undoStack.current.push([...components]);
+        redoStack.current = [];
+        updateComps([...components, {
+            instanceId: uuid(),
+            componentKey: lc.key,
+            componentId: lc._id,
+            name: lc.name,
+            category: lc.category,
+            htmlTemplate: lc.htmlTemplate,
+            cssCode: lc.cssCode,
+            jsCode: lc.jsCode,
+            propsSchema: lc.propsSchema,
+            propValues: {...lc.defaultProps},
+            isVisible: true,
+            isLocked: false,
+            order: components.length
+        }]);
+    };
     // Rebuild iframe
     useEffect(() => {
         if (!site || !activePage || !iframeRef.current) return;
@@ -494,25 +839,6 @@ export default function SiteBuilderPage() {
         } : prev);
     }, [activePageId]);
 
-    const addComp = (lc: LibraryComponent) => {
-        undoStack.current.push([...components]);
-        redoStack.current = [];
-        updateComps([...components, {
-            instanceId: uuid(),
-            componentKey: lc.key,
-            componentId: lc._id,
-            name: lc.name,
-            category: lc.category,
-            htmlTemplate: lc.htmlTemplate,
-            cssCode: lc.cssCode,
-            jsCode: lc.jsCode,
-            propsSchema: lc.propsSchema,
-            propValues: {...lc.defaultProps},
-            isVisible: true,
-            isLocked: false,
-            order: components.length
-        }]);
-    };
 
     const updateProp = useCallback((key: string, val: unknown) => {
         if (!selectedInstanceId) return;
@@ -584,6 +910,62 @@ export default function SiteBuilderPage() {
             setTimeout(() => setSaveMsg(""), 2000);
         }
     };
+    // ── Single component updater (for animation preset etc.) ─────────────
+    const updateComp = useCallback((instanceId: string, patch: Partial<Record<string, unknown>>) => {
+        const updated = components.map(c =>
+            c.instanceId === instanceId ? {...c, ...patch} : c
+        );
+        updateComps(updated);
+        if (dndSaveTimer.current) clearTimeout(dndSaveTimer.current);
+        dndSaveTimer.current = setTimeout(() => save(true), 800);
+    }, [components, updateComps, save]);
+
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        const comp = components.find(c => c.instanceId === String(event.active.id));
+        setDragOverlayLabel(comp?.name ?? null);
+    }, [components]);
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+        setDragOverlayLabel(null);
+        const {active, over} = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = components.findIndex(c => c.instanceId === String(active.id));
+        const newIndex = components.findIndex(c => c.instanceId === String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return;
+        undoStack.current.push([...components]);
+        redoStack.current = [];
+        const reordered = arrayMove(components, oldIndex, newIndex).map((c, i) => ({...c, order: i}));
+        updateComps(reordered);
+        if (dndSaveTimer.current) clearTimeout(dndSaveTimer.current);
+        dndSaveTimer.current = setTimeout(() => save(true), 800);
+    }, [components, updateComps, save]);
+
+
+    const handleClone = useCallback(async () => {
+        if (!cloneUrl.trim()) return;
+        setCloneLoading(true);
+        setCloneError('');
+        try {
+            const res = await fetch('/api/builder/clone-url', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: cloneUrl.trim()}),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error ?? 'Clone failed');
+            for (const ai of (data.data ?? [])) {
+                const lc = library.find(l => l.key === ai.componentKey);
+                if (lc) addComp({...lc, defaultProps: {...lc.defaultProps, ...ai.propValues}});
+            }
+            setCloneUrl('');
+            setRightPanel(null);
+        } catch (e) {
+            setCloneError(e instanceof Error ? e.message : 'Clone failed');
+        } finally {
+            setCloneLoading(false);
+        }
+    }, [cloneUrl, library, addComp, setRightPanel]);
+
 
     const publish = async () => {
         await save(true);
@@ -746,21 +1128,32 @@ export default function SiteBuilderPage() {
         e.target.value = "";
     };
     const handleOnboarding = async (t: string, n: string) => {
-        const d = await fetch("/api/site/init", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({siteType: t, siteName: n})
+        const d = await fetch('/api/site/init', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({siteType: t, siteName: n}),
         }).then(r => r.json());
         if (d.success) {
             setSite(d.data);
             setActivePageId(d.data.pages[0]?.pageId ?? null);
             setShowOnboarding(false);
+            setShowPersonality(true); // → show personality step
         }
     };
 
     if (isLoading) return <div className="flex items-center justify-center h-[80vh]"><Loader2
         className="h-8 w-8 animate-spin text-indigo-500"/></div>;
     if (showOnboarding) return <SiteTypeOnboarding onSelect={handleOnboarding}/>;
+    if (showPersonality && site) return (
+        <PersonalityOnboarding
+            siteType={site.siteType}
+            onComplete={(updatedSite) => {
+                setSite(updatedSite as typeof site);
+                setShowPersonality(false);
+            }}
+            onSkip={() => setShowPersonality(false)}
+        />
+    );
     if (!site) return null;
 
     return (
@@ -782,6 +1175,14 @@ export default function SiteBuilderPage() {
                     <button onClick={() => setRightPanel("pages")}
                             className="p-1 rounded hover:bg-muted text-muted-foreground"><Plus className="h-3.5 w-3.5"/>
                     </button>
+                    <Link
+                        href={`/dashboard/admin/site/marketplace?pageId=${activePageId ?? ''}`}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-muted transition-colors"
+                        title="Component Marketplace"
+                    >
+                        <Sparkles className="h-3.5 w-3.5 text-purple-500"/>
+                        Marketplace
+                    </Link>
                 </div>
                 <div className="ml-auto flex items-center gap-1">
                     <div className="flex border rounded-lg overflow-hidden">
@@ -813,9 +1214,18 @@ export default function SiteBuilderPage() {
                     <button onClick={() => setRightPanel(p => p === "global" ? null : "global")}
                             className={`p-1.5 rounded ${rightPanel === "global" ? "bg-indigo-100 text-indigo-600" : "hover:bg-muted"}`}
                             title="Navbar & Footer"><Navigation className="h-3.5 w-3.5"/></button>
-                    <button onClick={() => setRightPanel(p => p === "seo" ? null : "seo")}
-                            className={`p-1.5 rounded ${rightPanel === "seo" ? "bg-indigo-100 text-indigo-600" : "hover:bg-muted"}`}
+                    <button onClick={() => setRightPanel(p => p === 'seo' ? null : 'seo')}
+                            className={`p-1.5 rounded ${rightPanel === 'seo' ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-muted'}`}
                             title="SEO"><FileText className="h-3.5 w-3.5"/></button>
+                    <button onClick={() => setRightPanel(p => p === 'og' ? null : 'og')}
+                            className={`p-1.5 rounded ${rightPanel === 'og' ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-muted'}`}
+                            title="Social Preview"><Share2 className="h-3.5 w-3.5"/></button>
+                    <button onClick={() => setRightPanel(p => p === 'magic' ? null : 'magic')}
+                            className={`p-1.5 rounded ${rightPanel === 'magic' ? 'bg-purple-100 text-purple-600' : 'hover:bg-muted'}`}
+                            title="Magic AI"><Wand2 className="h-3.5 w-3.5"/></button>
+                    <button onClick={() => setRightPanel(p => p === 'clone' ? null : 'clone')}
+                            className={`p-1.5 rounded ${rightPanel === 'clone' ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-muted'}`}
+                            title="Clone a URL"><Link2 className="h-3.5 w-3.5"/></button>
                     <button onClick={() => setRightPanel(p => p === "export" ? null : "export")}
                             className={`p-1.5 rounded ${rightPanel === "export" ? "bg-indigo-100 text-indigo-600" : "hover:bg-muted"}`}
                             title="Export"><Download className="h-3.5 w-3.5"/></button>
@@ -836,6 +1246,12 @@ export default function SiteBuilderPage() {
                             className="h-3.5 w-3.5"/>{saveMsg}</span> :
                         <Button size="sm" variant="outline" onClick={() => save()} isLoading={isSaving}
                                 className="gap-1.5 h-8 text-xs"><Save className="h-3.5 w-3.5"/>Save</Button>}
+                    <LiveSEOScore
+                        page={activePage}
+                        componentCount={components.length}
+                        hasHero={components.some(c => c.category === 'hero')}
+                        hasFooter={components.some(c => c.category === 'footer')}
+                    />
                     <Button size="sm" variant="gradient" onClick={publish} isLoading={isPublishing}
                             className="gap-1.5 h-8 text-xs"><Globe
                         className="h-3.5 w-3.5"/>{site.isPublished ? "Re-publish" : "Publish"}</Button>
@@ -879,6 +1295,21 @@ export default function SiteBuilderPage() {
                         {filteredLib.length === 0 &&
                             <p className="text-xs text-muted-foreground text-center py-6">No components found.</p>}
                     </div>
+                    {libCat === 'all' && filteredLib.length > 0 && (
+                        <div className="mt-2 border-t pt-2">
+                            <MagicAIPanel
+                                siteType={site.siteType}
+                                pageSlug={activePage?.slug ?? '/'}
+                                existingComponentKeys={components.map(c => c.componentKey)}
+                                onAddComponents={(comps) => {
+                                    for (const ai of comps) {
+                                        const lc = library.find(l => l.key === ai.componentKey);
+                                        if (lc) addComp({...lc, defaultProps: {...lc.defaultProps, ...ai.propValues}});
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Canvas */}
@@ -901,35 +1332,47 @@ export default function SiteBuilderPage() {
                 </div>
 
                 {/* Layers strip */}
-                {components.length > 0 && rightPanel !== "props" && (
-                    <div
-                        className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t z-10 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto">
-                        {components.map((c, idx) => {
-                            const I = CAT_ICONS[c.category] ?? Layers;
-                            return (
-                                <div key={c.instanceId} className="flex items-center gap-0.5 shrink-0">
-                                    <button onClick={() => {
-                                        setSelectedInstanceId(c.instanceId);
-                                        setRightPanel("props");
-                                    }}
-                                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs whitespace-nowrap border ${selectedInstanceId === c.instanceId ? "bg-indigo-600 text-white border-indigo-600" : "hover:bg-muted border-transparent"} ${!c.isVisible ? "opacity-40" : ""}`}>
-                                        <I className="h-3 w-3"/>{c.name}{!c.isVisible &&
-                                        <EyeOff className="h-2.5 w-2.5"/>}
-                                    </button>
-                                    <div className="flex flex-col">
-                                        <button onClick={() => moveComp(c.instanceId, -1)} disabled={idx === 0}
-                                                className="h-3 w-3 flex items-center justify-center disabled:opacity-20">
-                                            <ChevronLeft className="h-2.5 w-2.5 rotate-90"/></button>
-                                        <button onClick={() => moveComp(c.instanceId, 1)}
-                                                disabled={idx === components.length - 1}
-                                                className="h-3 w-3 flex items-center justify-center disabled:opacity-20">
-                                            <ChevronLeft className="h-2.5 w-2.5 -rotate-90"/></button>
+                {components.length > 0 && rightPanel !== 'props' && (
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div
+                            className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t z-10 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto">
+                            <SortableContext
+                                items={components.map(c => c.instanceId)}
+                                strategy={horizontalListSortingStrategy}
+                            >
+                                {components.map(c => (
+                                    <SortableLayerItem
+                                        key={c.instanceId}
+                                        instanceId={c.instanceId}
+                                        name={c.name}
+                                        category={c.category}
+                                        isVisible={c.isVisible}
+                                        isSelected={selectedInstanceId === c.instanceId}
+                                        onSelect={() => {
+                                            setSelectedInstanceId(c.instanceId);
+                                            setRightPanel('props');
+                                        }}
+                                    />
+                                ))}
+                            </SortableContext>
+                            <DragOverlay dropAnimation={{duration: 120, easing: 'ease'}}>
+                                {dragOverlayLabel ? (
+                                    <div
+                                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-indigo-600 text-white shadow-lg cursor-grabbing select-none">
+                                        <GripVertical className="h-3 w-3"/>
+                                        {dragOverlayLabel}
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                ) : null}
+                            </DragOverlay>
+                        </div>
+                    </DndContext>
                 )}
+
 
                 {/* Right panel */}
                 {rightPanel && (
@@ -947,12 +1390,20 @@ export default function SiteBuilderPage() {
                                         <button onClick={() => dup(selectedComp.instanceId)}
                                                 className="p-1.5 rounded hover:bg-muted" title="Duplicate"><Copy
                                             className="h-4 w-4"/></button>
+
                                         <button onClick={() => exportCompJSON(selectedComp)}
                                                 className="p-1.5 rounded hover:bg-muted" title="Export JSON"><Download
                                             className="h-4 w-4"/></button>
                                         <button onClick={() => delComp(selectedComp.instanceId)}
                                                 className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600">
                                             <Trash2 className="h-4 w-4"/></button>
+                                        <button
+                                            onClick={() => setRightPanel('animation')}
+                                            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                                            title="Animate this component"
+                                        >
+                                            <Sparkles className="h-3.5 w-3.5"/>
+                                        </button>
                                         <button onClick={() => {
                                             setRightPanel(null);
                                             setSelectedInstanceId(null);
@@ -1003,6 +1454,120 @@ export default function SiteBuilderPage() {
                             <SEOPanel page={activePage} onSave={handleSaveSEO} onClose={() => setRightPanel(null)}/>}
                         {rightPanel === "export" &&
                             <ExportPanel site={site} activePage={activePage} onClose={() => setRightPanel(null)}/>}
+                        {rightPanel === 'og' && activePage && (
+                            <OGPreviewEditor
+                                page={activePage}
+                                siteName={site.siteName}
+                                onSave={async (seo) => {
+                                    await handleSaveSEO(seo, activePage.customCSS ?? '');
+                                }}
+                                onClose={() => setRightPanel(null)}
+                            />
+                        )}
+                        {rightPanel === 'magic' && (
+                            <div className="flex flex-col h-full">
+                                <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                                    <p className="font-semibold text-sm">Magic AI</p>
+                                    <button onClick={() => setRightPanel(null)} className="p-1 rounded hover:bg-muted">
+                                        <X className="h-4 w-4"/></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    <MagicAIPanel
+                                        siteType={site.siteType}
+                                        pageSlug={activePage?.slug ?? '/'}
+                                        existingComponentKeys={components.map(c => c.componentKey)}
+                                        onAddComponents={(comps) => {
+                                            for (const ai of comps) {
+                                                const lc = library.find(l => l.key === ai.componentKey);
+                                                if (lc) addComp({
+                                                    ...lc,
+                                                    defaultProps: {...lc.defaultProps, ...ai.propValues}
+                                                });
+                                            }
+                                        }}
+                                    />
+                                    <VibeCheckPanel
+                                        siteType={site.siteType}
+                                        onApplied={(updatedSite) => {
+                                            setSite(updatedSite as typeof site);
+                                            setRightPanel(null);
+                                        }}
+                                        onClose={() => setRightPanel(null)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {rightPanel === 'clone' && (
+                            <div className="flex flex-col h-full">
+                                <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                                    <div>
+                                        <p className="font-semibold text-sm">Clone a URL</p>
+                                        <p className="text-xs text-muted-foreground">Paste any website URL to recreate
+                                            its structure</p>
+                                    </div>
+                                    <button onClick={() => setRightPanel(null)} className="p-1 rounded hover:bg-muted">
+                                        <X className="h-4 w-4"/></button>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    <input
+                                        type="url"
+                                        value={cloneUrl}
+                                        onChange={e => {
+                                            setCloneUrl(e.target.value);
+                                            setCloneError('');
+                                        }}
+                                        placeholder="https://example.com"
+                                        className="w-full h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                        onKeyDown={e => e.key === 'Enter' && handleClone()}
+                                    />
+                                    {cloneError && (
+                                        <p className="text-xs text-red-500 flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3 shrink-0"/>{cloneError}
+                                        </p>
+                                    )}
+                                    <Button
+                                        onClick={handleClone}
+                                        disabled={!cloneUrl.trim() || cloneLoading}
+                                        isLoading={cloneLoading}
+                                        className="w-full gap-2"
+                                        size="sm"
+                                        variant="gradient"
+                                    >
+                                        {!cloneLoading && <Wand2 className="h-3.5 w-3.5"/>}
+                                        {cloneLoading ? 'Analyzing & cloning…' : 'Clone Structure'}
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        AI will fetch the page and add matching components to your canvas. Images are
+                                        not copied.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        {rightPanel === 'assets' && (
+                            <AssetLibrary
+                                onSelect={(url) => {
+                                    // Dispatch to selected prop if one is active
+                                    // Users can also copy the URL manually
+                                    navigator.clipboard?.writeText(url).catch(() => null);
+                                    setRightPanel(null);
+                                }}
+                                onClose={() => setRightPanel(null)}
+                            />
+                        )}
+                        {rightPanel === 'animation' && selectedInstanceId && (
+                            <AnimationStudio
+                                instanceId={selectedInstanceId}
+                                currentPreset={
+                                    components.find(c => c.instanceId === selectedInstanceId)?.animationPreset ?? ''
+                                }
+                                onApply={(preset) => {
+                                    updateComp(selectedInstanceId, {animationPreset: preset});
+                                    setRightPanel('props');
+                                }}
+                                onClose={() => setRightPanel('props')}
+                            />
+                        )}
+
                     </div>
                 )}
             </div>

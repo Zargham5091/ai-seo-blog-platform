@@ -5,27 +5,40 @@ import {Button} from "@/components/ui/button";
 import {Input, Label, Badge} from "@/components/ui/form-elements";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import type {BacklinkAnalysis, BacklinkResult} from "@/app/api/backlinks/route";
+import CharacterLoader from "@/components/loader/CharacterLoader";
 
 export default function BacklinksPage() {
     const [url, setUrl] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<BacklinkAnalysis | null>(null);
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
 
     const analyze = async () => {
-        if (!url.trim()) return;
-        setIsAnalyzing(true);
-        setError("");
-        setResult(null);
-        const res = await fetch("/api/backlinks", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({url}),
-        });
-        const d = await res.json();
-        if (d.success) setResult(d.data);
-        else setError(d.error);
-        setIsAnalyzing(false);
+        try {
+            setIsLoading(true);
+
+            if (!url.trim()) return;
+            setIsAnalyzing(true);
+            setError("");
+            setResult(null);
+            const res = await fetch("/api/backlinks", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({url}),
+            });
+            const d = await res.json();
+            setIsLoading(false);
+
+            if (d.success) setResult(d.data);
+            else setError(d.error);
+            setIsAnalyzing(false);
+        } catch (error) {
+           console.log(error);
+        }finally {
+            setIsLoading(false);
+        }
     };
 
     const daColor = (da: number) =>
@@ -33,7 +46,13 @@ export default function BacklinksPage() {
 
     const spamColor = (score: number) =>
         score <= 2 ? "text-emerald-600" : score <= 5 ? "text-yellow-600" : "text-red-500";
-
+    if (isLoading) {
+        return (
+            <div className="w-full h-full flex items-center justify-center">
+                <CharacterLoader/>
+            </div>
+        );
+    }
     return (
         <div className="space-y-6">
             <div>

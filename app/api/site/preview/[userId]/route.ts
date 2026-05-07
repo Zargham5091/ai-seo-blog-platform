@@ -29,6 +29,7 @@ export async function GET(req: NextRequest, {params}: Params) {
     }
 
     const slug = new URL(req.url).searchParams.get("slug") ?? "/";
+    console.log("slug", slug);
     const relPath = slug === "/" ? "index.html" : `${slug.replace(/^\//, "")}/index.html`;
     const filePath = path.join(SITES_DIR, params.userId, relPath);
 

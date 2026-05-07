@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/misc";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { formatNumber } from "@/lib/utils";
 import {OnboardingChecklist} from "@/components/dashboard/OnboardingChecklist";
+import {PageLoader} from "@/components/loader/pageLoading";
 
 interface DashboardStats {
   totalBlogs: number;
@@ -101,9 +102,10 @@ export default function AdminDashboardPage() {
                     </AreaChart>
                   </ResponsiveContainer>
               ) : (
-                  <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
-                    {isLoading ? "Loading..." : "No view data yet. Publish posts to start tracking."}
-                  </div>
+                  <PageLoader fullPage  text="Loading Dashboard…" />
+                  // <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+                  //   {isLoading ? "Loading..." : "No view data yet. Publish posts to start tracking."}
+                  // </div>
               )}
             </CardContent>
           </Card>
