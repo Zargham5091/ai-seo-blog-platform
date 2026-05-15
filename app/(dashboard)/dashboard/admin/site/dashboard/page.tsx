@@ -1,14 +1,14 @@
 'use client';
 
 /**
- * app/(dashboard)/dashboard/admin/site/dashboard/page.tsx
+ * app/(dashboard)/dashboard/admin/site/dashboard/route.ts
  *
  * Site Dashboard — separate from the builder.
  * Shows: site status, visitor stats placeholder, form submissions.
  * For ecommerce sites: product management + order management.
  *
  * CREATE folder: app/(dashboard)/dashboard/admin/site/dashboard/
- * CREATE file:   page.tsx (this file)
+ * CREATE file:   route.ts (this file)
  */
 
 import {useCallback, useEffect, useState} from 'react';

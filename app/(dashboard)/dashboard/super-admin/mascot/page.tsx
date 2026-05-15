@@ -1,4 +1,4 @@
-// app/(dashboard)/dashboard/super-admin/mascot/page.tsx
+// app/(dashboard)/dashboard/super-admin/mascot/route.ts
 "use client";
 import {useEffect, useState} from "react";
 import {Save, Plus, Trash2, Bot, RefreshCw, Eye, EyeOff} from "lucide-react";

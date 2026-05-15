@@ -7,6 +7,7 @@ import UserModel from "@/models/User";
 import bcrypt from "bcryptjs";
 import {MongoDBAdapter} from "@auth/mongodb-adapter";
 import {ACTIONS, logActivity} from "@/lib/activity";
+import {headers} from "next/headers";
 
 export const authOptions: NextAuthOptions = {
     adapter: MongoDBAdapter(clientPromise),
@@ -55,7 +56,7 @@ export const authOptions: NextAuthOptions = {
                 }
                 await connectDB();
                 const user = await UserModel.findOne({email: credentials.email}).select("+password");
-                if (!user) throw new Error("No account found with this email");
+                if (!user) throw new Error("Invalid Credentials");
                 if (!user.password) throw new Error("Please sign in with Google");
                 const isValid = await bcrypt.compare(credentials.password, user.password);
                 if (!isValid) throw new Error("Incorrect password");
@@ -102,6 +103,18 @@ export const authOptions: NextAuthOptions = {
             return session;
         },
         async signIn({user, account}) {
+
+            const headersList = await headers();
+            const forwardedFor = headersList.get("x-forwarded-for");
+            const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : headersList.get("x-real-ip") || "unknown";
+            const userAgent = headersList.get("user-agent") || "unknown";
+
+            // Simple device detection
+            const device = /mobile|android|iphone|ipad/i.test(userAgent) ? "mobile"
+                : /tablet/i.test(userAgent) ? "tablet"
+                    : "desktop";
+
+
             if (account?.provider === "google") {
                 await connectDB();
                 const existingUser = await UserModel.findOne({email: user.email});
@@ -142,6 +155,8 @@ export const authOptions: NextAuthOptions = {
                 action: ACTIONS.USER_LOGIN,
                 category: "auth",
                 metadata: {provider: account?.provider},
+                ip,
+                userAgent,
             }).catch(console.error);
             return true;
         },

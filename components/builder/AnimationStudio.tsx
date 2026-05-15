@@ -7,7 +7,7 @@
  * Writes to `animationPreset` field on ICanvasComponent (already in your model).
  * The renderer injects the preset class + IntersectionObserver JS into the iframe.
  *
- * PLACEMENT IN page.tsx:
+ * PLACEMENT IN route.ts:
  * 1. Import: import { AnimationStudio } from '@/components/builder/AnimationStudio';
  * 2. Add 'animation' to RightPanel type (already done in wiring patch)
  * 3. Add a wand icon button in the props panel header:

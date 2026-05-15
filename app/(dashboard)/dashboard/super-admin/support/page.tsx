@@ -1,4 +1,4 @@
-// app/(dashboard)/dashboard/super-admin/support/page.tsx
+// app/(dashboard)/dashboard/super-admin/support/route.ts
 "use client";
 import {useEffect, useState, useRef, useCallback} from "react";
 import {
@@ -347,7 +347,7 @@ export default function SuperAdminSupportPage() {
     );
 }
 
-// // app/(dashboard)/dashboard/super-admin/support/page.tsx
+// // app/(dashboard)/dashboard/super-admin/support/route.ts
 // "use client";
 // import {useEffect, useState} from "react";
 // import {

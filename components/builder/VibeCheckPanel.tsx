@@ -7,7 +7,7 @@
  * User writes a sentence. Cloudflare AI picks the best palette + vibe.
  * Saves via /api/site/vibe-check which reuses your personality route logic.
  *
- * PLACEMENT IN page.tsx:
+ * PLACEMENT IN route.ts:
  * 1. Import: import { VibeCheckPanel } from '@/components/builder/VibeCheckPanel';
  * 2. Add 'vibecheck' to RightPanel type
  * 3. Add button to top bar (beside Magic AI button):

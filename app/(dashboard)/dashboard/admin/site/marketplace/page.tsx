@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * app/(dashboard)/dashboard/admin/site/marketplace/page.tsx
+ * app/(dashboard)/dashboard/admin/site/marketplace/route.ts
  *
  * Component Marketplace — users browse all available components filtered by
  * category, site type, and plan. One-click adds to current page.
@@ -11,7 +11,7 @@
  * which already exists.
  *
  * CREATE folder: app/(dashboard)/dashboard/admin/site/marketplace/
- * CREATE file:   page.tsx (this file)
+ * CREATE file:   route.ts (this file)
  */
 
 import {useCallback, useEffect, useState} from 'react';

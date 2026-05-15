@@ -1,4 +1,4 @@
-// app/(marketing)/page.tsx
+// app/(marketing)/route.ts
 import type {Metadata} from "next";
 import Link from "next/link";
 import {
@@ -514,7 +514,7 @@ export default async function HomePage() {
         </div>
     );
 }
-// // app/(marketing)/page.tsx
+// // app/(marketing)/route.ts
 // import type {Metadata} from "next";
 // import Link from "next/link";
 // import {

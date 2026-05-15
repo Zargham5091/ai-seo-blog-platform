@@ -7,7 +7,7 @@
  * Each button sends a specific prompt to /api/builder/ai and adds the
  * returned components onto the current canvas.
  *
- * PLACEMENT IN page.tsx:
+ * PLACEMENT IN route.ts:
  *   1. Import: import { MagicAIPanel } from '@/components/builder/MagicAIPanel';
  *   2. Add to left panel JSX — below the component library search, as a new tab or section:
  *      <MagicAIPanel

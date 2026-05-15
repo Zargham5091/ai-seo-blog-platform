@@ -6,7 +6,7 @@
  * A single draggable item in the bottom layer strip of the site builder.
  * Uses @dnd-kit/sortable for horizontal drag-to-reorder.
  *
- * CAT_ICONS is defined here (single source of truth) and imported by page.tsx
+ * CAT_ICONS is defined here (single source of truth) and imported by route.ts
  * so both files stay in sync without circular imports.
  */
 
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CAT_ICONS — exported so page.tsx imports from here (no duplication)
+// CAT_ICONS — exported so route.ts imports from here (no duplication)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const CAT_ICONS: Record<string, React.ElementType> = {

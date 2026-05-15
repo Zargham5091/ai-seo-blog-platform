@@ -8,7 +8,7 @@
  * heading structure (inferred from components), and component completeness.
  * No API call needed — fully client-side calculation.
  *
- * PLACEMENT IN page.tsx top bar — after the publish button:
+ * PLACEMENT IN route.ts top bar — after the publish button:
  *   import { LiveSEOScore } from '@/components/builder/LiveSEOScore';
  *
  *   <LiveSEOScore

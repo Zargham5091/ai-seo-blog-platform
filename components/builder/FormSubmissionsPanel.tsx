@@ -38,16 +38,16 @@
 // }
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// FORM SUBMISSIONS PANEL UI — add this component to site-dashboard-page.tsx
+// FORM SUBMISSIONS PANEL UI — add this component to site-dashboard-route.ts
 // Paste below the Orders section and above the closing of the page component.
 // ─────────────────────────────────────────────────────────────────────────────
 
 'use client';
 
 /**
- * FormSubmissionsPanel — standalone component to paste into site-dashboard-page.tsx
+ * FormSubmissionsPanel — standalone component to paste into site-dashboard-route.ts
  *
- * USAGE in site-dashboard-page.tsx:
+ * USAGE in site-dashboard-route.ts:
  * 1. Add submissions to DashboardData type:
  *      submissions?: Array<{
  *        _id: string;

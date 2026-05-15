@@ -11,7 +11,7 @@
  *
  * ALSO NEEDS: app/api/assets/unsplash/route.ts (provided below as separate file)
  *
- * USAGE — called from ImagePropField in page.tsx when user clicks "Browse Library":
+ * USAGE — called from ImagePropField in route.ts when user clicks "Browse Library":
  *   <AssetLibrary onSelect={(url) => onChange(url)} onClose={() => setShowLibrary(false)} />
  *
  * OR as a right panel tab: add rightPanel === 'assets' case.

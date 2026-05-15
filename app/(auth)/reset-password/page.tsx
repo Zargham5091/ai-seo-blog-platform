@@ -1,4 +1,4 @@
-// app/(auth)/reset-password/page.tsx
+// app/(auth)/reset-password/route.ts
 "use client";
 import {useState} from "react";
 import {useSearchParams, useRouter} from "next/navigation";

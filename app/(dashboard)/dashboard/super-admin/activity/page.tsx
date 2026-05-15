@@ -686,7 +686,7 @@ export default function SuperAdminActivityPage() {
 }
 
 
-// // app/(dashboard)/dashboard/super-admin/activity/page.tsx
+// // app/(dashboard)/dashboard/super-admin/activity/route.ts
 // "use client";
 // import {useEffect, useState} from "react";
 // import {Activity, LogIn, FileText, UserCheck, UserX, Settings, Search, Filter} from "lucide-react";

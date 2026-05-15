@@ -1,4 +1,4 @@
-// app/(marketing)/demo/page.tsx
+// app/(marketing)/demo/route.ts
 "use client";
 import {useState, useEffect} from "react";
 import {Sparkles, Search, BarChart3, ArrowRight, Lock, Zap, CheckCircle, AlertCircle} from "lucide-react";

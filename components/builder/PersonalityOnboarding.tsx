@@ -7,8 +7,8 @@
  * Collects: vibe words, color palette preference, target audience description.
  * Calls /api/site/personality to apply AI-configured theme + returns to builder.
  *
- * PLACEMENT IN page.tsx:
- *   1. Import this component at top of page.tsx
+ * PLACEMENT IN route.ts:
+ *   1. Import this component at top of route.ts
  *   2. Add state: const [showPersonality, setShowPersonality] = useState(false);
  *   3. In handleOnboarding(), after setSite(d.data), instead of setShowOnboarding(false):
  *        setSite(d.data); setShowOnboarding(false); setShowPersonality(true);

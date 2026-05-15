@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
-import {Input, Label, Badge} from "@/components/ui/form-elements";
+import {Input, Badge} from "@/components/ui/form-elements";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {ConfirmDialog} from "@/components/shared/ConfirmDialog";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
@@ -131,8 +131,8 @@ export default function TeamPage() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({memberId, role}),
         });
-        fetchTeam();
-        fetchActivity();
+        await fetchTeam();
+        await fetchActivity();
     };
 
     return (
@@ -242,18 +242,19 @@ export default function TeamPage() {
                     ) : (
                         <div className="space-y-2">
                             {members.map((member) => {
+                                if (!member?.userId?._id) return null;
                                 const roleCfg = ROLE_CONFIG[member.role] ?? ROLE_CONFIG.member;
                                 return (
                                     <Card key={member.userId._id}>
                                         <CardContent className="p-4 flex items-center gap-4">
-                                            {member.userId.image ? (
+                                            {member?.userId?.image ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={member.userId.image} alt=""
                                                      className="h-10 w-10 rounded-full object-cover shrink-0"/>
                                             ) : (
                                                 <div
                                                     className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                                                    {member.userId.name?.charAt(0).toUpperCase()}
+                                                    {member?.userId?.name?.charAt(0).toUpperCase()}
                                                 </div>
                                             )}
                                             <div className="flex-1 min-w-0">

@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
             plan: "free",
             aiCreditsUsed: 0,
             aiCreditsLimit: 10,
+            isActive: true,
+            subscriptionStatus: "inactive",
         });
 
         // Track referral if code provided

@@ -7,7 +7,7 @@
  * Shows a live Facebook/Twitter card preview as the user edits fields.
  * Saves to /api/site/page/[pageId]/seo (your existing route).
  *
- * PLACEMENT IN page.tsx:
+ * PLACEMENT IN route.ts:
  *   In the right panel, add a new tab button (e.g. "OG" icon) and:
  *   {rightPanel === 'og' && activePage && (
  *     <OGPreviewEditor

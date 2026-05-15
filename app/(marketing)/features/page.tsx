@@ -1,4 +1,4 @@
-// app/(marketing)/features/page.tsx
+// app/(marketing)/features/route.ts
 import type {Metadata} from "next";
 import {generateCMSMetadata, getCMSPage} from "@/components/shared/CMSPageRenderer";
 import {Card, CardContent} from "@/components/ui/card";

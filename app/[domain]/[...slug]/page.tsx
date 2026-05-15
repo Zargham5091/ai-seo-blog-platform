@@ -1,4 +1,4 @@
-// app/[domain]/[...slug]/page.tsx
+// app/[domain]/[...slug]/route.ts
 // Serves inner pages like /about, /pricing for tenant sites.
 
 import {NextResponse} from "next/server";

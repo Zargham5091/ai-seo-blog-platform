@@ -1,14 +1,14 @@
 'use client';
 
 /**
- * app/(dashboard)/dashboard/admin/site/health/page.tsx
+ * app/(dashboard)/dashboard/admin/site/health/route.ts
  *
  * Site Health Dashboard — post-publish checks.
  * Shows: broken links, missing meta, slow components, SEO issues per page.
  * All checks are client-side — no external crawl service needed.
  *
  * CREATE folder: app/(dashboard)/dashboard/admin/site/health/
- * CREATE file:   page.tsx (this file)
+ * CREATE file:   route.ts (this file)
  */
 
 import {useCallback, useEffect, useState} from 'react';

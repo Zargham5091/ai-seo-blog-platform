@@ -1,4 +1,4 @@
-// app/(auth)/verify-email/page.tsx
+// app/(auth)/verify-email/route.ts
 "use client";
 import {useEffect, useState} from "react";
 import {useSearchParams, useRouter} from "next/navigation";

@@ -1,4 +1,4 @@
-// app/(auth)/forgot-password/page.tsx
+// app/(auth)/forgot-password/route.ts
 "use client";
 import {useState} from "react";
 import Link from "next/link";

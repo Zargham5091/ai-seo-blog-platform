@@ -1,0 +1,42 @@
+import {NextRequest, NextResponse} from "next/server";
+import {getServerSession} from "next-auth";
+import {authOptions} from "@/lib/auth";
+import {connectDB} from "@/lib/db";
+import UserSiteModel from "@/models/UserSite";
+import {unpublishSite} from "@/lib/builder/publish";
+
+export async function POST(
+    _req: NextRequest,
+    {params}: { params: { siteId: string } }
+) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({success: false, error: "Unauthorized"}, {status: 401});
+
+        await connectDB();
+        const site = await UserSiteModel.findOne({_id: params.siteId, userId: session.user.id});
+        if (!site) return NextResponse.json({success: false, error: "Not found"}, {status: 404});
+
+        // Clear all components from every page, reset published state
+        const clearedPages = (site.pages ?? []).map((p: Record<string, unknown>) => ({
+            ...p,
+            components: [],
+        }));
+
+        await UserSiteModel.updateOne(
+            {_id: params.siteId, userId: session.user.id},
+            {$set: {pages: clearedPages, isPublished: false}}
+        );
+
+        // Remove published static files
+        try {
+            await unpublishSite(session.user.id);
+        } catch {
+        }
+
+        return NextResponse.json({success: true});
+    } catch (err) {
+        console.error("[SITE_RESET]", err);
+        return NextResponse.json({success: false, error: "Failed to reset site"}, {status: 500});
+    }
+}

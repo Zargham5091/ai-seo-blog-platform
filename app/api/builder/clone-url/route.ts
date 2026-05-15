@@ -7,6 +7,7 @@
 // Fetches the target URL, extracts text structure (headings, CTAs, sections),
 // then asks AI to map that structure to components from the library.
 // Does NOT copy images or CSS — recreates the structure with your own components.
+require('dns').setDefaultResultOrder('ipv4first');
 
 import {NextRequest, NextResponse} from 'next/server';
 import {getServerSession} from 'next-auth';
@@ -80,22 +81,37 @@ export async function POST(req: NextRequest) {
 
         // ── 1. Fetch target page ────────────────────────────────────────────────
         let html: string;
+        // try {
+        //     const fetchRes = await fetch(url, {
+        //         headers: {
+        //             'User-Agent': 'Mozilla/5.0 (compatible; SiteCraftBot/1.0)',
+        //             Accept: 'text/html',
+        //         },
+        //         signal: AbortSignal.timeout(8000),
+        //     });
+        //     if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
+        //     html = await fetchRes.text();
+        // } catch (err) {
+        //     return NextResponse.json(
+        //         {
+        //             success: false,
+        //             error: `Could not fetch that URL: ${err instanceof Error ? err.message : 'Network error'}`
+        //         },
+        //         {status: 422}
+        //     );
+        // }
         try {
+            console.log(`[CLONE_URL] Fetching: ${url}`);
             const fetchRes = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; SiteCraftBot/1.0)',
-                    Accept: 'text/html',
-                },
-                signal: AbortSignal.timeout(8000),
+                headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+                signal: AbortSignal.timeout(15000), // increase timeout
             });
             if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
             html = await fetchRes.text();
         } catch (err) {
+            console.error('[FETCH ERROR]', err);   // 👈 see full error in terminal
             return NextResponse.json(
-                {
-                    success: false,
-                    error: `Could not fetch that URL: ${err instanceof Error ? err.message : 'Network error'}`
-                },
+                {success: false, error: `Could not fetch that URL: ${err.message || 'Network error'}`},
                 {status: 422}
             );
         }

@@ -1,7 +1,7 @@
 "use client";
 /**
  * Super Admin — Component Library Manager
- * Path: app/(dashboard)/dashboard/super-admin/components/page.tsx
+ * Path: app/(dashboard)/dashboard/super-admin/components/route.ts
  *
  * Features:
  * - Create/edit/delete components for all 9 categories
@@ -1252,7 +1252,7 @@ export default function ComponentLibraryPage() {
 // "use client";
 // /**
 //  * Super Admin — Component Library Manager
-//  * Path: app/(dashboard)/dashboard/super-admin/components/page.tsx
+//  * Path: app/(dashboard)/dashboard/super-admin/components/route.ts
 //  *
 //  * Features:
 //  * - Create/edit/delete components for all 9 categories
